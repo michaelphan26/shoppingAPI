@@ -22,4 +22,28 @@ function validateRegister(registerDetail){
     return schema.validate(registerDetail)
 };
 
-module.exports={validateLogin,validateRegister};
+function validateAddUser(addDetail) {
+    const schema = joi.object({
+        email:joi.string().min(5).max(256).trim().email().required(),
+        password:joi.string().min(8).max(1024).required(),
+        name:joi.string().min(2).max(50).trim().required(),
+        phone:joi.string().min(10).max(12).trim().pattern(/((09|03|07|08|05)+([0-9]{8})\b)/).required(),
+        address: joi.string().min(5).max(100).trim().required(),
+        admin:joi.boolean().required()
+    })
+
+    return schema.validate(addDetail)
+}
+
+function validateEditUser(newDetail) {
+    const schema = joi.object({
+        name:joi.string().min(2).max(50).trim().required(),
+        phone:joi.string().min(10).max(12).trim().pattern(/((09|03|07|08|05)+([0-9]{8})\b)/).required(),
+        address: joi.string().min(5).max(100).trim().required(),
+        admin:joi.boolean().required()
+    })
+
+    return schema.validate(newDetail)
+}
+
+module.exports={validateLogin,validateRegister, validateAddUser, validateEditUser};

@@ -7,4 +7,6 @@ router.post('/login', authLogin)
 
 router.post('/register', authRegister)
 
+// router.put('/change-password', auth, )
+
 module.exports=router

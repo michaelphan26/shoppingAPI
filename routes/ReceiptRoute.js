@@ -7,8 +7,6 @@ router.get('/receipt-list',auth,getReceiptList)
 
 router.get('/receipt-detail/:id', auth, getReceiptDetail);
 
-// router.put('/receipt-detail')
-
 router.post('/add-receipt',auth ,addReceipt)
 
 module.exports=router
