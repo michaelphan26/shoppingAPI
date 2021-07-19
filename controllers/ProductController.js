@@ -27,8 +27,15 @@ async function getProductList(req, res, next) {
 }
 
 async function getProductDetail(req, res, next) {
-  const id = new mongoose.Types.ObjectId(req.params.id);
-  console.log(id);
+  let id;
+  try {
+    id = new mongoose.Types.ObjectId(req.params.id);
+  } catch (err) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, "Invalid product id"));
+  }
+
   const product = await Product.findOne({ _id: id });
   if (!product) {
     return res
@@ -82,7 +89,15 @@ async function addProduct(req, res, next) {
 }
 
 async function deleteProduct(req, res, next) {
-  const id = mongoose.Types.ObjectId(req.params.id);
+  let id;
+  try {
+    id = new mongoose.Types.ObjectId(req.params.id);
+  } catch (err) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, "Invalid product id"));
+  }
+
   const result = await Product.findByIdAndRemove({ _id: id });
   if (result) {
     return res
@@ -96,6 +111,15 @@ async function deleteProduct(req, res, next) {
 }
 
 async function editProduct(req, res, next) {
+  let id;
+  try {
+    id = new mongoose.Types.ObjectId(req.params.id);
+  } catch (err) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, "Invalid product id"));
+  }
+
   const newDetail = {
     name: req.body.name.trim(),
     brand: req.body.brand.trim(),
@@ -112,7 +136,6 @@ async function editProduct(req, res, next) {
       .json(errorResponse(res.statusCode, validate.error.message));
   }
 
-  const id = mongoose.Types.ObjectId(req.params.id);
   const result = await Product.findOneAndUpdate(
     { _id: id },
     {

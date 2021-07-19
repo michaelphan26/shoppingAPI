@@ -41,14 +41,14 @@ async function addToCart(req, res, next) {
       .json(errorResponse(res.statusCode, check.error.message));
   }
 
-  const checkInDB = Product.findOne({ _id: req.body.productID });
+  const checkInDB = await Product.findOne({ _id: req.body.productID });
   if (!checkInDB) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, "Product not available"));
   }
 
-  const dbCart = await Cart.finOne({ email: email });
+  const dbCart = await Cart.findOne({ email: email });
 
   //Cart empty
   if (!dbCart) {
@@ -110,8 +110,90 @@ async function addToCart(req, res, next) {
     .send(successResponse(res.statusCode, "Save cart success", dbCart));
 }
 
-async function removeFromCart(req, res, next) {}
+async function removeFromCart(req, res, next) {
+  const email = req.user.email;
 
-async function changeQuantity(req, res, next) {}
+  req.body.quantity = 0;
+  const validateBody = validateProduct(req.body);
+  if (validateBody.error) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, check.error.message));
+  }
 
-module.exports = { getCart, emptyCart, addToCart };
+  const checkInDB = await Product.findOne({ _id: req.body.productID });
+  if (!checkInDB) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, "Product not available"));
+  }
+
+  const dbCart = await Cart.findOne({ email: email });
+
+  if (!dbCart) {
+    return res.status(404).json(errorResponse(res.statusCode, "Cart is empty"));
+  }
+
+  dbCart.productList.filter((item) => item.productID !== req.body.productID);
+
+  const check = dbCart.save();
+  if (!check) {
+    return res
+      .status(500)
+      .json(errorResponse(res.statusCode, "Cannot remove product from cart"));
+  }
+
+  return res.status(200).json(successResponse(res.statusCode, "Ok", dbCart));
+}
+
+async function changeQuantity(req, res, next) {
+  const email = req.user.email;
+
+  const validateBody = validateProduct(req.body);
+  if (validateBody.error) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, check.error.message));
+  }
+
+  const checkInDB = await Product.findOne({ _id: req.body.productID });
+  if (!checkInDB) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, "Product not available"));
+  }
+
+  const dbCart = await Cart.findOne({ email: email });
+
+  if (!dbCart) {
+    return res.status(404).json(errorResponse(res.statusCode, "Cart is empty"));
+  }
+
+  if (req.body.quantity !== 0) {
+    for (const index in dbCart.productList) {
+      if (dbCart.productList[index].productID === req.body.productID) {
+        dbCart.productList[index].quantity = req.body.quantity;
+        break;
+      }
+    }
+  } else {
+    dbCart.productList.filter((item) => item.productID !== req.body.productID);
+  }
+
+  const result = await dbCart.save();
+  if (!result) {
+    return res
+      .status(500)
+      .json(errorResponse(res.statusCode, "Cannot edit cart"));
+  }
+
+  return res.status(200).json(successResponse(res.statusCode, "OK", dbCart));
+}
+
+module.exports = {
+  getCart,
+  emptyCart,
+  addToCart,
+  removeFromCart,
+  changeQuantity,
+};

@@ -12,7 +12,7 @@ async function reduceStock(productList) {
       const productInDB = await Product.findOne({
         _id: productList[index].product._id,
       });
-      productInDB.stock -= productList[index].product.stock;
+      productInDB.stock -= productList[index].quantity;
       const result = await productInDB.save();
       if (!result) throw err;
     }
@@ -32,7 +32,7 @@ async function checkStock(productList) {
     const productInDB = await Product.findOne({
       _id: productList[index].product._id,
     });
-    if (!productInDB || productInDB.stock < productList[index].product.stock)
+    if (!productInDB || productInDB.stock < productList[index].quantity)
       return false;
   }
   return true;
