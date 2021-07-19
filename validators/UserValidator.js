@@ -1,49 +1,72 @@
-const joi=require('joi')
+const joi = require("joi");
 
 //Truyền vào req.body
-function validateLogin(loginDetail){
-    const schema=joi.object({
-        email:joi.string().min(5).max(256).trim().email().required(),
-        password:joi.string().min(8).max(1024).required()
-    })
+function validateLogin(loginDetail) {
+  const schema = joi.object({
+    email: joi.string().min(5).max(256).trim().email().required(),
+    password: joi.string().min(8).max(1024).required(),
+  });
 
-    return schema.validate(loginDetail)
-};
+  return schema.validate(loginDetail);
+}
 
-function validateRegister(registerDetail){
-    const schema = joi.object({
-        email:joi.string().min(5).max(256).trim().email().required(),
-        password:joi.string().min(8).max(1024).required(),
-        name:joi.string().min(2).max(50).trim().required(),
-        phone:joi.string().min(10).max(12).trim().pattern(/((09|03|07|08|05)+([0-9]{8})\b)/).required(),
-        address:joi.string().min(5).max(100).trim().required(),
-    })
+function validateRegister(registerDetail) {
+  const schema = joi.object({
+    email: joi.string().min(5).max(256).trim().email().required(),
+    password: joi.string().min(8).max(1024).required(),
+    name: joi.string().min(2).max(50).trim().required(),
+    phone: joi
+      .string()
+      .min(10)
+      .max(12)
+      .trim()
+      .pattern(/((09|03|07|08|05)+([0-9]{8})\b)/)
+      .required(),
+    address: joi.string().min(5).max(100).trim().required(),
+  });
 
-    return schema.validate(registerDetail)
-};
+  return schema.validate(registerDetail);
+}
 
 function validateAddUser(addDetail) {
-    const schema = joi.object({
-        email:joi.string().min(5).max(256).trim().email().required(),
-        password:joi.string().min(8).max(1024).required(),
-        name:joi.string().min(2).max(50).trim().required(),
-        phone:joi.string().min(10).max(12).trim().pattern(/((09|03|07|08|05)+([0-9]{8})\b)/).required(),
-        address: joi.string().min(5).max(100).trim().required(),
-        admin:joi.boolean().required()
-    })
+  const schema = joi.object({
+    email: joi.string().min(5).max(256).trim().email().required(),
+    password: joi.string().min(8).max(1024).required(),
+    name: joi.string().min(2).max(50).trim().required(),
+    phone: joi
+      .string()
+      .min(10)
+      .max(12)
+      .trim()
+      .pattern(/((09|03|07|08|05)+([0-9]{8})\b)/)
+      .required(),
+    address: joi.string().min(5).max(100).trim().required(),
+    admin: joi.boolean().required(),
+  });
 
-    return schema.validate(addDetail)
+  return schema.validate(addDetail);
 }
 
 function validateEditUser(newDetail) {
-    const schema = joi.object({
-        name:joi.string().min(2).max(50).trim().required(),
-        phone:joi.string().min(10).max(12).trim().pattern(/((09|03|07|08|05)+([0-9]{8})\b)/).required(),
-        address: joi.string().min(5).max(100).trim().required(),
-        admin:joi.boolean().required()
-    })
+  const schema = joi.object({
+    name: joi.string().min(2).max(50).trim().required(),
+    phone: joi
+      .string()
+      .min(10)
+      .max(12)
+      .trim()
+      .pattern(/((09|03|07|08|05)+([0-9]{8})\b)/)
+      .required(),
+    address: joi.string().min(5).max(100).trim().required(),
+    admin: joi.boolean().required(),
+  });
 
-    return schema.validate(newDetail)
+  return schema.validate(newDetail);
 }
 
-module.exports={validateLogin,validateRegister, validateAddUser, validateEditUser};
+module.exports = {
+  validateLogin,
+  validateRegister,
+  validateAddUser,
+  validateEditUser,
+};

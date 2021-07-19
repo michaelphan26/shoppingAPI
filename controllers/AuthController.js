@@ -9,38 +9,37 @@ const _ = require("lodash");
 const bcrypt = require("bcrypt");
 const { successResponse, errorResponse } = require("../models/ResponseAPI");
 const { userDetailResponse } = require("./UserController");
+const jwt = require("jsonwebtoken");
+const config = require("config");
+
+async function cleanupToken(user) {
+  const tempArray = [];
+  for (const index in user.tokenList) {
+    try {
+      const ver = jwt.verify(
+        user.tokenList[index],
+        config.get("jwtPrivateKey")
+      );
+      tempArray.push(user.tokenList[index]);
+    } catch (err) {
+      console.log("Remove outdate token");
+    }
+  }
+  user.tokenList = tempArray;
+}
+
+async function saveToken(user, token) {
+  user.tokenList.push(token);
+  await user.save();
+}
 
 async function sendToken(res, msg, user) {
   const token = await user.generateToken();
+  saveToken(user, token);
   return res
     .header("x-auth-token", token)
     .status(200)
     .json(successResponse(res.statusCode, msg, userDetailResponse(user)));
-}
-
-async function authLogin(req, res, next) {
-  const user = {
-    email: req.body.email.trim(),
-    password: req.body.password.trim(),
-  };
-
-  const validateResult = validateLogin(user);
-  if (validateResult.error) {
-    return res
-      .status(400)
-      .json(errorResponse(res.statusCode, validateResult.error.message));
-  }
-
-  const dbUser = await User.findOne({ email: user.email });
-  const result = bcrypt.compare(req.body.password, dbUser.password);
-
-  if (!result) {
-    return res
-      .status(400)
-      .json(errorResponse(res.statusCode, "Email or password is incorrect"));
-  }
-
-  sendToken(res, "OK", dbUser);
 }
 
 async function authRegister(req, res, next) {
@@ -82,6 +81,7 @@ async function authRegister(req, res, next) {
     address: user.address,
     joinDate: date,
     admin: role,
+    tokenList: [],
   });
 
   const result = await dbUser.save();
@@ -92,6 +92,61 @@ async function authRegister(req, res, next) {
   }
 
   sendToken(res, "OK", dbUser);
+}
+
+async function authLogin(req, res, next) {
+  const user = {
+    email: req.body.email.trim(),
+    password: req.body.password.trim(),
+  };
+
+  const validateResult = validateLogin(user);
+  if (validateResult.error) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, validateResult.error.message));
+  }
+
+  const dbUser = await User.findOne({ email: user.email });
+
+  const check = bcrypt.compare(req.body.password, dbUser.password);
+
+  if (!check) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, "Email or password is incorrect"));
+  }
+
+  cleanupToken(dbUser);
+
+  if (dbUser.tokenList.length === 3) {
+    return res
+      .status(401)
+      .json(errorResponse(res.statusCode, "Too many devices"));
+  }
+
+  sendToken(res, "OK", dbUser);
+}
+
+async function authLogout(req, res, next) {
+  const token = req.header("x-auth-token");
+  const dbUser = await User.findOne({
+    email: req.user.email,
+  });
+
+  dbUser.tokenList = dbUser.tokenList.filter((item) => item.id !== token);
+
+  cleanupToken(dbUser);
+
+  const result = await dbUser.save();
+  if (!result)
+    return res
+      .status(500)
+      .json(successResponse(res.statusCode, "Logout failed"));
+
+  return res
+    .status(200)
+    .json(successResponse(res.statusCode, "Logout successful"));
 }
 
 async function adminAddAccount(req, res, next) {
@@ -134,6 +189,7 @@ async function adminAddAccount(req, res, next) {
     address: user.address,
     joinDate: date,
     admin: role,
+    tokenList: [],
   });
 
   const result = await dbUser.save();
@@ -146,4 +202,10 @@ async function adminAddAccount(req, res, next) {
   res.status(200).json(successResponse(res.statusCode, "Add user successful"));
 }
 
-module.exports = { authLogin, authRegister, adminAddAccount, sendToken };
+module.exports = {
+  authLogin,
+  authRegister,
+  adminAddAccount,
+  sendToken,
+  authLogout,
+};

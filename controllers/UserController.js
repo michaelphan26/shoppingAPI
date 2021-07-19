@@ -1,12 +1,11 @@
 const mongoose = require("mongoose");
 const { User } = require("../database/UserModel");
-const { sendToken } = require("../controllers/AuthController");
 const _ = require("lodash");
 const { validateEditUser } = require("../validators/UserValidator");
 const { successResponse, errorResponse } = require("../models/ResponseAPI");
 
 function userDetailResponse(user) {
-  return _.omit(user.toObject(), ["_id", "password", "__v"]);
+  return _.omit(user.toObject(), ["_id", "password", "__v", "tokenList"]);
 }
 
 //User
@@ -72,7 +71,11 @@ async function editUserDetail(req, res, next) {
       .json(errorResponse(res.statusCode, "Cannot edit user detail"));
   }
 
-  sendToken(res, result);
+  res
+    .status(200)
+    .json(
+      successResponse(res.statusCode, "Edit profile successful", newDetail)
+    );
 }
 
 module.exports = {
