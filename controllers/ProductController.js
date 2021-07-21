@@ -208,4 +208,5 @@ module.exports = {
   deleteProduct,
   editProduct,
   getProductListAdmin,
+  getProductDetailAdmin,
 };

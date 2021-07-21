@@ -1,4 +1,4 @@
-const { mongoose } = require('mongoose');
+const mongoose = require('mongoose');
 const { Receipt } = require('../database/ReceiptModel');
 const { ReceiptType } = require('../database/ReceipTypeModel');
 const { errorResponse, successResponse } = require('../models/ResponseAPI');
@@ -48,6 +48,7 @@ async function editReceiptType(req, res, next) {
   try {
     id = new mongoose.Types.ObjectId(req.params.id);
   } catch (err) {
+    console.log(err);
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'Invalid receipt type id'));
@@ -85,4 +86,37 @@ async function editReceiptType(req, res, next) {
   return res.status(200).json(successResponse(res.statusCode, 'Ok'));
 }
 
-module.exports = { getReceiptTypeList, addReceiptType };
+async function deleteReceiptType(req, res, next) {
+  let id;
+  try {
+    id = new mongoose.Types.ObjectId(req.params.id);
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid receipt type id'));
+  }
+
+  const dbCheck = await Receipt.findOne({ id_receiptType: id });
+  if (dbCheck) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Cannot delete this receipt type'));
+  }
+
+  const result = await ReceiptType.findOneAndDelete({ _id: id });
+  if (!result) {
+    return res
+      .status(500)
+      .json(errorResponse(res.statusCode, 'Cannot delete this receipt type'));
+  }
+
+  return res.status(200).json(successResponse(res.statusCode, 'Ok'));
+}
+
+module.exports = {
+  getReceiptTypeList,
+  addReceiptType,
+  editReceiptType,
+  deleteReceiptType,
+};

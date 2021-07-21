@@ -5,8 +5,11 @@ const _ = require('lodash');
 const {
   validateEditUser,
   validateEditUserAdmin,
+  validateAddUser,
 } = require('../validators/UserValidator');
 const { successResponse, errorResponse } = require('../models/ResponseAPI');
+const { saveUserWithInfo } = require('./AuthController');
+const bcrypt = require('bcrypt');
 
 //User
 async function getUserDetail(req, res, next) {
@@ -40,18 +43,6 @@ async function getUserDetail(req, res, next) {
         _.omit(responseUser, ['_id', '__v'])
       )
     );
-}
-
-//Admin
-async function getAccountList(req, res, next) {
-  const userList = await User.find({}, { password: 0 });
-  if (!userList) {
-    return res
-      .status(400)
-      .json(errorResponse(res.statusCode, 'User list is empty'));
-  }
-
-  return res.status(200).json(successResponse(res.statusCode, 'OK', userList));
 }
 
 async function editUserDetail(req, res, next) {
@@ -93,21 +84,16 @@ async function editUserDetail(req, res, next) {
     );
 }
 
-async function saveUserDetailAdmin(dbUser, dbUserInfo) {
-  const session = await mongoose.startSession();
-  await session.startTransaction();
-  try {
-    await dbUserInfo.save();
-    await dbUser.save();
-  } catch (err) {
-    console.log(err);
-    await session.abortTransaction();
-    await session.endSession();
-    return false;
+//Admin
+async function getAccountList(req, res, next) {
+  const userList = await User.find({}, { password: 0 });
+  if (!userList) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'User list is empty'));
   }
-  await session.commitTransaction();
-  await session.endSession();
-  return true;
+
+  return res.status(200).json(successResponse(res.statusCode, 'OK', userList));
 }
 
 async function editUserDetailAdmin(req, res, next) {
@@ -174,9 +160,53 @@ async function editUserDetailAdmin(req, res, next) {
     );
 }
 
+async function adminAddUser(req, res, next) {
+  const validateResult = validateAddUser(req.body);
+  if (validateResult.error) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, validateResult.error.message));
+  }
+
+  let avai = await User.findOne({ email: req.body.email.trim() });
+  if (avai) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Email is already registered'));
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  req.body.password = await bcrypt.hash(req.body.password, salt);
+
+  const date = new Date();
+  const dbUserInfo = new UserInfo({
+    name: req.body.name.trim(),
+    phone: req.body.phone.trim(),
+    address: req.body.address.trim(),
+    joinDate: date,
+  });
+
+  const dbUser = new User({
+    email: req.body.email.trim(),
+    password: req.body.password.trim(),
+    id_role: req.body.id_role,
+    id_userInfo: dbUserInfo._id,
+  });
+
+  const result = await saveUserWithInfo(dbUser, dbUserInfo);
+  if (!result) {
+    return res
+      .status(500)
+      .json(errorResponse(res.statusCode, 'Something is wrong'));
+  }
+
+  res.status(200).json(successResponse(res.statusCode, 'Add user successful'));
+}
+
 module.exports = {
   getUserDetail,
   getAccountList,
   editUserDetail,
   editUserDetailAdmin,
+  adminAddUser,
 };

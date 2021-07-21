@@ -19,7 +19,7 @@ function validateRegister(registerDetail) {
     phone: joi
       .string()
       .min(10)
-      .max(12)
+      .max(11)
       .trim()
       .pattern(/((09|03|07|08|05)+([0-9]{8})\b)/)
       .required(),
@@ -37,12 +37,12 @@ function validateAddUser(addDetail) {
     phone: joi
       .string()
       .min(10)
-      .max(12)
+      .max(11)
       .trim()
       .pattern(/((09|03|07|08|05)+([0-9]{8})\b)/)
       .required(),
     address: joi.string().min(5).max(100).trim().required(),
-    admin: joi.boolean().required(),
+    id_role: joi.objectId().required(),
   });
 
   return schema.validate(addDetail);
