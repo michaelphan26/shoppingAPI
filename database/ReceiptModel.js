@@ -1,33 +1,30 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const receiptSchema = mongoose.Schema({
-  productList: {
-    type: Array,
-    minLength: 1,
-    required: true,
-  },
-  date: {
+  email: {
     type: String,
     required: true,
+    minLength: 5,
+    maxLength: 256,
     trim: true,
+    unique: true,
   },
   total: {
     type: Number,
     required: true,
-    min: 1000,
+    min: 0,
     max: 1000000000,
   },
-  email: {
-    type: String,
+  date: {
+    type: Date,
     required: true,
-    trim: true,
   },
-  status: {
-    type: Boolean,
+  id_receiptType: {
+    type: mongoose.Schema.Types.ObjectId,
     required: true,
   },
 });
 
-const Receipt = mongoose.model("Receipt", receiptSchema);
+const Receipt = mongoose.model('Receipt', receiptSchema);
 
 exports.Receipt = Receipt;

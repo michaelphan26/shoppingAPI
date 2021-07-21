@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const categorySchema = mongoose.Schema({
   name: {
@@ -6,9 +6,11 @@ const categorySchema = mongoose.Schema({
     required: true,
     trim: true,
     minLength: 2,
-    maxLength: 20,
+    maxLength: 30,
     unique: true,
   },
 });
 
-module.exports.Role = mongoose.model("Category", categorySchema);
+const Category = mongoose.model('Category', categorySchema);
+
+module.exports.Category = Category;

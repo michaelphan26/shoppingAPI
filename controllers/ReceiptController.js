@@ -1,8 +1,9 @@
-const { Receipt } = require("../database/ReceiptModel");
-const { Product } = require("../database/ProductModel");
-const mongoose = require("mongoose");
-const { validateReceipt } = require("../validators/ReceiptValidator");
-const { successResponse, errorResponse } = require("../models/ResponseAPI");
+const { Receipt } = require('../database/ReceiptModel');
+const { Product } = require('../database/ProductModel');
+const { ReceiptDetail } = require('../database/ReceiptDetailModel');
+const mongoose = require('mongoose');
+const { validateReceipt } = require('../validators/ReceiptValidator');
+const { successResponse, errorResponse } = require('../models/ResponseAPI');
 
 async function reduceStock(productList) {
   const session = await Product.startSession();
@@ -44,34 +45,53 @@ async function getReceiptList(req, res, next) {
   if (!receiptList) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, "Cannot get receipt list"));
+      .json(errorResponse(res.statusCode, 'Cannot get receipt list'));
   } else if (receiptList.length === 0) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, "Product list currently empty"));
+      .json(errorResponse(res.statusCode, 'Product list currently empty'));
   }
 
   return res
     .status(200)
-    .json(successResponse(res.statusCode, "OK", receiptList));
+    .json(successResponse(res.statusCode, 'OK', receiptList));
 }
 
 async function getReceiptDetail(req, res, next) {
-  const id = new mongoose.Types.ObjectId(req.params.id);
-  const receiptDetail = await Receipt.findOne({ _id: id });
+  let id;
+  try {
+    id = new mongoose.Types.ObjectId(req.params.id);
+  } catch (err) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid receipt id'));
+  }
+
+  //TH check ma receipt nguoi khac
+  const receiptAuthCheck = await Receipt.findOne({
+    _id: id,
+    email: req.user.email,
+  });
+  if (!receiptAuthCheck) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, "You don't have this receipt"));
+  }
+
+  const receiptDetail = await ReceiptDetail.findOne({ id_receipt: id });
   if (!receiptDetail) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, "Cannot get receipt detail"));
+      .json(errorResponse(res.statusCode, 'Cannot get receipt detail'));
   }
 
   return res
     .status(200)
-    .json(successResponse(res.statusCode, "OK", receiptDetail));
+    .json(successResponse(res.statusCode, 'OK', receiptDetail));
 }
 
 async function saveReceipt(receipt, res) {
-  const date = new Date().toLocaleDateString("en-GB");
+  const date = new Date().toLocaleDateString('en-GB');
   const session = await mongoose.startSession();
   await session.startTransaction();
   try {
@@ -82,14 +102,14 @@ async function saveReceipt(receipt, res) {
         .json(
           errorResponse(
             res.statusCode,
-            "Product not available or not enough stock"
+            'Product not available or not enough stock'
           )
         );
 
     const reduce = await reduceStock(receipt.productList);
     if (!reduce)
       return status(500).json(
-        errorResponse(res.statusCode, "Cannot get stock to receipt")
+        errorResponse(res.statusCode, 'Cannot get stock to receipt')
       );
 
     const dbReceipt = new Receipt({
@@ -103,17 +123,17 @@ async function saveReceipt(receipt, res) {
     if (!result) {
       return res
         .status(500)
-        .json(errorResponse(res.statusCode, "Failed to save receipt"));
+        .json(errorResponse(res.statusCode, 'Failed to save receipt'));
     }
     await session.commitTransaction();
     await session.endSession();
     return res
       .status(200)
-      .json(successResponse(res.statusCode, "OK", dbReceipt));
+      .json(successResponse(res.statusCode, 'OK', dbReceipt));
   } catch (err) {
     await session.abortTransaction();
     await session.endSession();
-    return res.status(500).json("Failed to save receipt");
+    return res.status(500).json('Failed to save receipt');
   }
 }
 
@@ -127,22 +147,44 @@ async function addReceipt(req, res, next) {
   if (validateResult.error) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, "Receipt detail is incorrect"));
+      .json(errorResponse(res.statusCode, 'Receipt detail is incorrect'));
   }
 
   return saveReceipt(receipt, res);
 }
 
 //Admin
-async function getFullReceiptList(req, res, next) {
+async function getReceiptListAdmin(req, res, next) {
   const receiptList = await Receipt.find({});
   if (!receiptList) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, "Receipt list is empty"));
+      .json(errorResponse(res.statusCode, 'Receipt list is empty'));
   }
 
-  return res.status(200).json(res.statusCode, "OK", receiptList);
+  return res.status(200).json(res.statusCode, 'OK', receiptList);
+}
+
+async function getReceiptDetailAdmin(req, res, next) {
+  let id;
+  try {
+    id = new mongoose.Types.ObjectId(req.params.id);
+  } catch (err) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid receipt id'));
+  }
+
+  const receiptDetail = await ReceiptDetail.findOne({ id_receipt: id });
+  if (!receiptDetail) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Cannot get receipt detail'));
+  }
+
+  return res
+    .status(200)
+    .json(successResponse(res.statusCode, 'OK', receiptDetail));
 }
 
 async function toggleReceipt(req, res, next) {
@@ -159,18 +201,19 @@ async function toggleReceipt(req, res, next) {
   if (!result) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, "Cannot change receipt status"));
+      .json(errorResponse(res.statusCode, 'Cannot change receipt status'));
   }
 
   res
     .status(200)
-    .json(successResponse(res.statusCode, "Change receipt status successful"));
+    .json(successResponse(res.statusCode, 'Change receipt status successful'));
 }
 
 module.exports = {
   getReceiptList,
   getReceiptDetail,
   addReceipt,
-  getFullReceiptList,
+  getReceiptListAdmin,
+  getReceiptDetailAdmin,
   toggleReceipt,
 };

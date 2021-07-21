@@ -2,44 +2,46 @@ const {
   validateLogin,
   validateRegister,
   validateAddUser,
-} = require("../validators/UserValidator");
-const mongoose = require("mongoose");
-const { User, generateToken } = require("../database/UserModel");
-const _ = require("lodash");
-const bcrypt = require("bcrypt");
-const { successResponse, errorResponse } = require("../models/ResponseAPI");
-const { userDetailResponse } = require("./UserController");
-const jwt = require("jsonwebtoken");
-const config = require("config");
+} = require('../validators/UserValidator');
+const mongoose = require('mongoose');
+const { User } = require('../database/UserModel');
+const _ = require('lodash');
+const bcrypt = require('bcrypt');
+const { successResponse, errorResponse } = require('../models/ResponseAPI');
+const { Role } = require('../database/RoleModel');
+const { UserInfo } = require('../database/UserInfoModel');
 
-async function cleanupToken(user) {
-  const tempArray = [];
-  for (const index in user.tokenList) {
-    try {
-      const ver = jwt.verify(
-        user.tokenList[index],
-        config.get("jwtPrivateKey")
-      );
-      tempArray.push(user.tokenList[index]);
-    } catch (err) {
-      console.log("Remove outdate token");
-    }
+async function saveUserWithInfo(dbUser, dbUserInfo) {
+  const session = await mongoose.startSession();
+  await session.startTransaction();
+  try {
+    await dbUserInfo.save();
+    await dbUser.save();
+  } catch (err) {
+    console.log(err);
+    await session.abortTransaction();
+    await session.endSession();
+    return false;
   }
-  user.tokenList = tempArray;
-}
-
-async function saveToken(user, token) {
-  user.tokenList.push(token);
-  await user.save();
+  await session.commitTransaction();
+  await session.endSession();
+  return true;
 }
 
 async function sendToken(res, msg, user) {
-  const token = await user.generateToken();
-  saveToken(user, token);
+  const role = await Role.findOne({ _id: user.id_role });
+  const tokenDetail = {
+    email: user.email,
+    id_userInfo: user.id_userInfo,
+    id_role: user.id_role,
+    role_name: role.name,
+  };
+  console.log(tokenDetail);
+  const token = await user.generateToken(tokenDetail);
   return res
-    .header("x-auth-token", token)
+    .header('x-auth-token', token)
     .status(200)
-    .json(successResponse(res.statusCode, msg, userDetailResponse(user)));
+    .json(successResponse(res.statusCode, msg, tokenDetail));
 }
 
 async function authRegister(req, res, next) {
@@ -47,17 +49,17 @@ async function authRegister(req, res, next) {
   if (avai) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, "Email is already registered"));
+      .json(errorResponse(res.statusCode, 'Email is already registered'));
   }
 
   //dd-mm-yy with 24h
-  const date = new Date().toLocaleString("en-GB");
+
   const user = {
-    email: req.body.email.trim(),
-    password: req.body.password.trim(),
-    name: req.body.name.trim(),
-    phone: req.body.phone.trim(),
-    address: req.body.address.trim(),
+    email: req.body.email,
+    password: req.body.password,
+    name: req.body.name,
+    phone: req.body.phone,
+    address: req.body.address,
   };
 
   const validateResult = validateRegister(user);
@@ -70,34 +72,37 @@ async function authRegister(req, res, next) {
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(user.password, salt);
 
-  const role =
-    req.body.admin === false || req.body.admin === undefined ? false : true;
+  const role = await Role.findOne({ name: 'User' });
 
-  const dbUser = new User({
-    email: user.email,
-    password: user.password,
-    name: user.name,
-    phone: user.phone,
-    address: user.address,
+  const date = new Date();
+  const dbUserInfo = new UserInfo({
+    name: user.name.trim(),
+    phone: user.phone.trim(),
+    address: user.address.trim(),
     joinDate: date,
-    admin: role,
-    tokenList: [],
   });
 
-  const result = await dbUser.save();
+  const dbUser = new User({
+    email: user.email.trim(),
+    password: user.password.trim(),
+    id_role: role._id,
+    id_userInfo: dbUserInfo._id,
+  });
+
+  const result = await saveUserWithInfo(dbUser, dbUserInfo);
   if (!result) {
     return res
       .status(500)
-      .json(errorResponse(res.statusCode, "Something is wrong"));
+      .json(errorResponse(res.statusCode, 'Something is wrong'));
   }
 
-  sendToken(res, "OK", dbUser);
+  sendToken(res, 'OK', dbUser);
 }
 
 async function authLogin(req, res, next) {
   const user = {
-    email: req.body.email.trim(),
-    password: req.body.password.trim(),
+    email: req.body.email,
+    password: req.body.password,
   };
 
   const validateResult = validateLogin(user);
@@ -107,46 +112,22 @@ async function authLogin(req, res, next) {
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
-  const dbUser = await User.findOne({ email: user.email });
+  const dbUser = await User.findOne({ email: user.email.trim() });
+  if (!dbUser) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Email or password is incorrect'));
+  }
 
-  const check = bcrypt.compare(req.body.password, dbUser.password);
+  const check = bcrypt.compare(req.body.password.trim(), dbUser.password);
 
   if (!check) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, "Email or password is incorrect"));
+      .json(errorResponse(res.statusCode, 'Email or password is incorrect'));
   }
 
-  cleanupToken(dbUser);
-
-  if (dbUser.tokenList.length === 3) {
-    return res
-      .status(401)
-      .json(errorResponse(res.statusCode, "Too many devices"));
-  }
-
-  sendToken(res, "OK", dbUser);
-}
-
-async function authLogout(req, res, next) {
-  const token = req.header("x-auth-token");
-  const dbUser = await User.findOne({
-    email: req.user.email,
-  });
-
-  dbUser.tokenList = dbUser.tokenList.filter((item) => item.id !== token);
-
-  cleanupToken(dbUser);
-
-  const result = await dbUser.save();
-  if (!result)
-    return res
-      .status(500)
-      .json(successResponse(res.statusCode, "Logout failed"));
-
-  return res
-    .status(200)
-    .json(successResponse(res.statusCode, "Logout successful"));
+  sendToken(res, 'OK', dbUser);
 }
 
 async function adminAddAccount(req, res, next) {
@@ -154,11 +135,11 @@ async function adminAddAccount(req, res, next) {
   if (avai) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, "Email is already registered"));
+      .json(errorResponse(res.statusCode, 'Email is already registered'));
   }
 
   //dd-mm-yy with 24h
-  const date = new Date().toLocaleString("en-GB");
+  const date = new Date().toLocaleString('en-GB');
   const user = {
     email: req.body.email.trim(),
     password: req.body.password.trim(),
@@ -196,10 +177,10 @@ async function adminAddAccount(req, res, next) {
   if (!result) {
     return res
       .status(500)
-      .json(errorResponse(res.statusCode, "Something is wrong"));
+      .json(errorResponse(res.statusCode, 'Something is wrong'));
   }
 
-  res.status(200).json(successResponse(res.statusCode, "Add user successful"));
+  res.status(200).json(successResponse(res.statusCode, 'Add user successful'));
 }
 
 module.exports = {
@@ -207,5 +188,4 @@ module.exports = {
   authRegister,
   adminAddAccount,
   sendToken,
-  authLogout,
 };

@@ -1,19 +1,11 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const {
-  authLogin,
-  authRegister,
-  authLogout,
-} = require("../controllers/AuthController");
-const { auth } = require("../middlewares/AuthMiddleware");
-require("express-async-errors");
+const { authLogin, authRegister } = require('../controllers/AuthController');
+const { auth } = require('../middlewares/AuthMiddleware');
+require('express-async-errors');
 
-router.post("/login", authLogin);
+router.post('/login', authLogin);
 
-router.post("/register", authRegister);
-
-// router.put('/change-password', auth, )
-
-router.post("/logout", auth, authLogout);
+router.post('/register', authRegister);
 
 module.exports = router;

@@ -1,29 +1,29 @@
-const { Product } = require("../database/ProductModel");
-const mongoose = require("mongoose");
-const { validateProduct } = require("../validators/ProductValidator");
-const _ = require("lodash");
-const { successResponse, errorResponse } = require("../models/ResponseAPI");
+const { Product } = require('../database/ProductModel');
+const mongoose = require('mongoose');
+const { validateProduct } = require('../validators/ProductValidator');
+const _ = require('lodash');
+const { successResponse, errorResponse } = require('../models/ResponseAPI');
 
 function productDetailResponse(product) {
-  return _.omit(product.toObject(), ["__v"]);
+  return _.omit(product.toObject(), ['__v']);
 }
 
 //User
 async function getProductList(req, res, next) {
-  const productList = await Product.find({});
+  const productList = await Product.find({ status: true });
   if (!productList) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, "Cannot get product list"));
+      .json(errorResponse(res.statusCode, 'Cannot get product list'));
   } else if (productList.length === 0) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, "Product list currently empty"));
+      .json(errorResponse(res.statusCode, 'Product list currently empty'));
   }
 
   return res
     .status(200)
-    .json(successResponse(res.statusCode, "OK", productList));
+    .json(successResponse(res.statusCode, 'OK', productList));
 }
 
 async function getProductDetail(req, res, next) {
@@ -33,24 +33,65 @@ async function getProductDetail(req, res, next) {
   } catch (err) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, "Invalid product id"));
+      .json(errorResponse(res.statusCode, 'Invalid product id'));
+  }
+
+  const product = await Product.findOne({ _id: id, status: true });
+  if (!product) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Cannot get product detail'));
+  }
+
+  return res
+    .status(200)
+    .json(
+      successResponse(res.statusCode, 'OK', productDetailResponse(product))
+    );
+}
+
+//Admin
+async function getProductListAdmin(req, res, next) {
+  const productList = await Product.find({});
+  if (!productList) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Cannot get product list'));
+  } else if (productList.length === 0) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Product list currently empty'));
+  }
+
+  return res
+    .status(200)
+    .json(successResponse(res.statusCode, 'OK', productList));
+}
+
+async function getProductDetailAdmin(req, res, next) {
+  let id;
+  try {
+    id = new mongoose.Types.ObjectId(req.params.id);
+  } catch (err) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid product id'));
   }
 
   const product = await Product.findOne({ _id: id });
   if (!product) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, "Cannot get product detail"));
+      .json(errorResponse(res.statusCode, 'Cannot get product detail'));
   }
 
   return res
     .status(200)
     .json(
-      successResponse(res.statusCode, "OK", productDetailResponse(product))
+      successResponse(res.statusCode, 'OK', productDetailResponse(product))
     );
 }
 
-//Admin
 async function addProduct(req, res, next) {
   const product = {
     name: req.body.name.trim(),
@@ -80,12 +121,12 @@ async function addProduct(req, res, next) {
   if (!result) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, "Failed to add product"));
+      .json(errorResponse(res.statusCode, 'Failed to add product'));
   }
 
   return res
     .status(200)
-    .json(successResponse(res.statusCode, "Add product successful"));
+    .json(successResponse(res.statusCode, 'Add product successful'));
 }
 
 async function deleteProduct(req, res, next) {
@@ -95,19 +136,19 @@ async function deleteProduct(req, res, next) {
   } catch (err) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, "Invalid product id"));
+      .json(errorResponse(res.statusCode, 'Invalid product id'));
   }
 
   const result = await Product.findByIdAndRemove({ _id: id });
   if (result) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, "Failed to delete product"));
+      .json(errorResponse(res.statusCode, 'Failed to delete product'));
   }
 
   return res
     .status(200)
-    .json(successResponse(res.statusCode, "Delete product successful"));
+    .json(successResponse(res.statusCode, 'Delete product successful'));
 }
 
 async function editProduct(req, res, next) {
@@ -117,7 +158,7 @@ async function editProduct(req, res, next) {
   } catch (err) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, "Invalid product id"));
+      .json(errorResponse(res.statusCode, 'Invalid product id'));
   }
 
   const newDetail = {
@@ -152,12 +193,12 @@ async function editProduct(req, res, next) {
   if (!result) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode("Failed to edit product")));
+      .json(errorResponse(res.statusCode('Failed to edit product')));
   }
 
   return res
     .statusCode(200)
-    .json(successResponse(res.statusCode, "Edit product successful"));
+    .json(successResponse(res.statusCode, 'Edit product successful'));
 }
 
 module.exports = {
@@ -166,4 +207,5 @@ module.exports = {
   addProduct,
   deleteProduct,
   editProduct,
+  getProductListAdmin,
 };

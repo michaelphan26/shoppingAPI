@@ -1,4 +1,5 @@
-const joi = require("joi");
+const joi = require('joi');
+joi.objectId = require('joi-objectid')(joi);
 
 //Truyền vào req.body
 function validateLogin(loginDetail) {
@@ -58,7 +59,23 @@ function validateEditUser(newDetail) {
       .pattern(/((09|03|07|08|05)+([0-9]{8})\b)/)
       .required(),
     address: joi.string().min(5).max(100).trim().required(),
-    admin: joi.boolean().required(),
+  });
+
+  return schema.validate(newDetail);
+}
+
+function validateEditUserAdmin(newDetail) {
+  const schema = joi.object({
+    name: joi.string().min(2).max(50).trim().required(),
+    phone: joi
+      .string()
+      .min(10)
+      .max(12)
+      .trim()
+      .pattern(/((09|03|07|08|05)+([0-9]{8})\b)/)
+      .required(),
+    address: joi.string().min(5).max(100).trim().required(),
+    id_role: joi.objectId().required(),
   });
 
   return schema.validate(newDetail);
@@ -69,4 +86,5 @@ module.exports = {
   validateRegister,
   validateAddUser,
   validateEditUser,
+  validateEditUserAdmin,
 };
