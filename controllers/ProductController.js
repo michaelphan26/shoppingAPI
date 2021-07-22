@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const { validateProduct } = require('../validators/ProductValidator');
 const _ = require('lodash');
 const { successResponse, errorResponse } = require('../models/ResponseAPI');
+const isBase64 = require('is-base64');
+const { ReceiptDetail } = require('../database/ReceiptDetailModel');
 
 function productDetailResponse(product) {
   return _.omit(product.toObject(), ['__v']);
@@ -93,16 +95,22 @@ async function getProductDetailAdmin(req, res, next) {
 }
 
 async function addProduct(req, res, next) {
-  const product = {
-    name: req.body.name.trim(),
-    brand: req.body.brand.trim(),
-    category: req.body.category.trim(),
-    price: req.body.price,
-    stock: req.body.stock,
-    image: req.body.image.trim(),
-  };
+  const checkImage = isBase64(req.body.image.trim(), {
+    allowMime: false,
+    allowEmpty: true,
+  });
+  if (!checkImage) {
+    return res
+      .status(400)
+      .json(
+        errorResponse(
+          res.statusCode,
+          'Image error. Image empty or forgot to remove mime'
+        )
+      );
+  }
 
-  const validateResult = validateProduct(product);
+  const validateResult = validateProduct(req.body);
   if (validateResult.error) {
     return res
       .status(400)
@@ -110,13 +118,17 @@ async function addProduct(req, res, next) {
   }
 
   const dbProduct = new Product({
-    name: product.name,
-    brand: product.brand,
-    category: product.category,
-    price: product.price,
-    stock: product.stock,
-    image: product.image,
+    name: req.body.name.trim(),
+    brand: req.body.brand.trim(),
+    price: req.body.price.trim(),
+    description: req.body.description.trim(),
+    stock: req.body.stock.trim(),
+    discount: req.body.discount.trim(),
+    status: req.body.status,
+    image: req.body.image.trim(),
+    id_category: req.body.id_category.trim(),
   });
+
   const result = await dbProduct.save();
   if (!result) {
     return res
@@ -139,7 +151,15 @@ async function deleteProduct(req, res, next) {
       .json(errorResponse(res.statusCode, 'Invalid product id'));
   }
 
-  const result = await Product.findByIdAndRemove({ _id: id });
+  const ioCheck = await IOProductDetail.findOne({ id_IOProduct: id });
+  const receiptCheck = await ReceiptDetail.findOne({ id_product: id });
+  if (ioCheck || receiptCheck || (ioCheck && receiptCheck)) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Cannot delete this product'));
+  }
+
+  const result = await Product.findByIdAndDelete({ _id: id });
   if (result) {
     return res
       .status(400)
@@ -161,43 +181,52 @@ async function editProduct(req, res, next) {
       .json(errorResponse(res.statusCode, 'Invalid product id'));
   }
 
-  const newDetail = {
-    name: req.body.name.trim(),
-    brand: req.body.brand.trim(),
-    category: req.body.category.trim(),
-    price: req.body.price,
-    stock: req.body.stock,
-    image: req.body.image.trim(),
-  };
+  const checkImage = isBase64(req.body.image.trim(), {
+    allowMime: false,
+    allowEmpty: true,
+  });
+  if (!checkImage) {
+    return res
+      .status(400)
+      .json(
+        errorResponse(
+          res.statusCode,
+          'Image error. Image empty or forgot to remove mime'
+        )
+      );
+  }
 
-  const validateResult = validateProduct(newDetail);
+  const validateResult = validateProduct(req.body);
   if (validateResult.error) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, validate.error.message));
+      .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
   const result = await Product.findOneAndUpdate(
     { _id: id },
     {
       $set: {
-        name: newDetail.name,
-        brand: newDetail.brand,
-        category: newDetail.category,
-        price: newDetail.price,
-        stock: newDetail.stock,
-        image: newDetail.image,
+        name: req.body.name.trim(),
+        brand: req.body.brand.trim(),
+        price: req.body.price,
+        description: req.body.description.trim(),
+        stock: req.body.stock,
+        discount: req.body.discount,
+        status: req.body.status,
+        image: req.body.image.trim(),
+        id_category: req.body.id_category.trim(),
       },
     }
   );
   if (!result) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode('Failed to edit product')));
+      .json(errorResponse(res.statusCode, 'Failed to edit product'));
   }
 
   return res
-    .statusCode(200)
+    .status(200)
     .json(successResponse(res.statusCode, 'Edit product successful'));
 }
 

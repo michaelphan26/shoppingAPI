@@ -35,11 +35,11 @@ router.get('/product-list', adminAuth, getProductListAdmin);
 
 router.get('/product-detail/:id', adminAuth, getProductDetailAdmin);
 
-// router.post('/add-product', adminAuth, addProduct);
+router.post('/add-product', adminAuth, addProduct);
 
-// router.put('/edit-product/:id', adminAuth, editProduct);
+router.put('/edit-product/:id', adminAuth, editProduct);
 
-// router.delete('/delete-product/:id', adminAuth, deleteProduct);
+router.delete('/delete-product/:id', adminAuth, deleteProduct);
 
 router.get('/receipt-list', adminAuth, getReceiptListAdmin);
 

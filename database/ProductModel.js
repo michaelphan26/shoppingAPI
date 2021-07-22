@@ -39,8 +39,9 @@ const productSchema = mongoose.Schema({
     max: 1000,
   },
   image: {
-    type: Buffer,
+    type: String,
     trim: true,
+    required: true,
   },
   discount: {
     type: Number,
