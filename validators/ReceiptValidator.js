@@ -1,4 +1,4 @@
-const joi = require("joi");
+const joi = require('joi');
 
 function validateReceipt(receipt) {
   const schema = joi.object({
@@ -6,26 +6,23 @@ function validateReceipt(receipt) {
       .array()
       .items(
         joi.object({
-          product: joi.object({
-            _id: joi.any(),
-            name: joi.string().min(2).max(64).trim().required(),
-            brand: joi.string().min(3).max(20).trim().required(),
-            category: joi.string().min(2).max(20).trim().required(),
-            price: joi.number().min(1000).max(1000000000).required(),
-            stock: joi.number().min(0).max(1000).required(),
-            image: joi.object(),
-          }),
-          quantity: joi.number().min(1).required(),
+          id_product: joi.objectId().required(),
+          price: joi.number().min(1000).max(1000000000).required(),
+          discount: joi.number().min(0).max(100).required(),
+          quantity: joi.number().min(1).max(10000).required(),
         })
       )
       .required()
       .min(1),
     total: joi.number().min(1000).max(1000000000).required(),
-    email: joi.string().min(5).max(256).trim().email().required(),
-    status: joi.boolean().required(),
+    id_receiptType: joi.objectId().required(),
   });
 
   return schema.validate(receipt);
 }
 
 module.exports = { validateReceipt };
+
+//total: joi.number().min(1000).max(1000000000).required(),
+//email: joi.string().min(5).max(256).trim().email().required(),
+//id_receiptType: joi.objectId().required(),

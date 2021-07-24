@@ -36,7 +36,7 @@ const productSchema = mongoose.Schema({
     type: Number,
     required: true,
     min: 0,
-    max: 1000,
+    max: 10000,
   },
   image: {
     type: String,

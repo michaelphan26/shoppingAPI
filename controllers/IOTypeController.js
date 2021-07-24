@@ -46,13 +46,11 @@ async function addIOType(req, res, next) {
 }
 
 async function editIOType(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, 'Invalid product id'));
+      .json(errorResponse(res.statusCode, 'Invalid io type id'));
   }
 
   const validateResult = validateIOType(req.body);
@@ -62,39 +60,36 @@ async function editIOType(req, res, next) {
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
-  const dbType = await IOType.findOne({ _id: id });
-  if (!dbType) {
-    return res
-      .status(400)
-      .json(errorResponse(res.statusCode, 'IO type not existed'));
-  }
-
   const result = await IOType.findOneAndUpdate(
     { _id: id },
     {
       $set: {
         name: req.body.name.trim(),
       },
-    }
+    },
+    { new: true }
   );
 
   if (!result) {
     return res
       .status(500)
-      .json(errorResponse(res.statusCode, 'Cannot edit io type'));
+      .json(
+        errorResponse(
+          res.statusCode,
+          'Cannot edit io type or io type not exist'
+        )
+      );
   }
 
   return res.status(200).json(successResponse(res.statusCode, 'Ok'));
 }
 
 async function deleteIOType(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, 'Invalid product id'));
+      .json(errorResponse(res.statusCode, 'Invalid io type id'));
   }
 
   const checkDB = await IOProduct.findOne({ id_ioType: id });

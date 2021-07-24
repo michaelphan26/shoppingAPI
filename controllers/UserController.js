@@ -13,13 +13,11 @@ const bcrypt = require('bcrypt');
 
 //User
 async function getUserDetail(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, 'Invalid user info id'));
+      .json(errorResponse(res.statusCode, 'Invalid user id'));
   }
 
   const userInfo = await UserInfo.findOne({ _id: id });
@@ -46,42 +44,46 @@ async function getUserDetail(req, res, next) {
 }
 
 async function editUserDetail(req, res, next) {
-  const newDetail = {
-    name: req.body.name,
-    phone: req.body.phone,
-    address: req.body.address,
-  };
+  const id = checkID(req.params.id);
+  if (!id) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid user id'));
+  }
 
-  const validateResult = validateEditUser(newDetail);
+  const validateResult = validateEditUser(req.body);
   if (validateResult.error) {
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
-  const id = mongoose.Types.ObjectId(req.params.id);
   const result = await UserInfo.findOneAndUpdate(
     { _id: id },
     {
       $set: {
-        name: newDetail.name.trim(),
-        phone: newDetail.phone.trim(),
-        address: newDetail.address.trim(),
+        name: req.body.name.trim(),
+        phone: req.body.phone.trim(),
+        address: req.body.address.trim(),
       },
-    }
+    },
+    { new: true }
   );
 
   if (!result) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, 'Cannot edit user detail'));
+      .json(
+        errorResponse(
+          res.statusCode,
+          'Cannot edit user detail or user not exist'
+        )
+      );
   }
 
   res
     .status(200)
-    .json(
-      successResponse(res.statusCode, 'Edit profile successful', newDetail)
-    );
+    .json(successResponse(res.statusCode, 'Edit profile successful', result));
 }
 
 //Admin
@@ -97,27 +99,25 @@ async function getAccountList(req, res, next) {
 }
 
 async function editUserDetailAdmin(req, res, next) {
-  let id_userInfo;
-  try {
-    id_userInfo = mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, 'Invalid user info id'));
+      .json(errorResponse(res.statusCode, 'Invalid user id'));
   }
 
-  const newDetail = {
-    name: req.body.name,
-    phone: req.body.phone,
-    address: req.body.address,
-    id_role: req.body.id_role,
-  };
-
-  const validateResult = validateEditUserAdmin(newDetail);
+  const validateResult = validateEditUserAdmin(req.body);
   if (validateResult.error) {
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
+  }
+
+  const idRoleCheck = Role.findOne({ _id: req.body.id_role });
+  if (!idRoleCheck) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Role id not exist'));
   }
 
   const session = await mongoose.startSession();
@@ -127,9 +127,9 @@ async function editUserDetailAdmin(req, res, next) {
       { _id: id_userInfo },
       {
         $set: {
-          name: newDetail.name.trim(),
-          phone: newDetail.phone.trim(),
-          address: newDetail.address.trim(),
+          name: req.body.name.trim(),
+          phone: req.body.phone.trim(),
+          address: req.body.address.trim(),
         },
       }
     );
@@ -149,7 +149,7 @@ async function editUserDetailAdmin(req, res, next) {
     await session.abortTransaction();
     await session.endSession();
     return res
-      .status(400)
+      .status(500)
       .json(errorResponse(res.statusCode, 'Cannot edit user detail'));
   }
 
@@ -176,7 +176,14 @@ async function adminAddUser(req, res, next) {
   }
 
   const salt = await bcrypt.genSalt(10);
-  req.body.password = await bcrypt.hash(req.body.password, salt);
+  req.body.password = await bcrypt.hash(req.body.password.trim(), salt);
+
+  const idRoleCheck = Role.findOne({ _id: req.body.id_role });
+  if (!idRoleCheck) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Role id not exist'));
+  }
 
   const date = new Date();
   const dbUserInfo = new UserInfo({

@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const { getIODetail } = require('../controllers/IODetailController');
 const { adminAuth } = require('../middlewares/AuthMiddleware');
-const { getIOList, addIO } = require('../controllers/IOController');
 
-router.get('/io-list', adminAuth, getIOList);
-
-router.post('/add-io', adminAuth, addIO);
+router.get('/:id', adminAuth, getIODetail);
 
 module.exports = router;

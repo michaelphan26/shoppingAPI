@@ -23,14 +23,7 @@ async function getCompanyList(req, res, next) {
 }
 
 async function addCompany(req, res, next) {
-  const company = {
-    name: req.body.name.trim(),
-    phone: req.body.phone.trim(),
-    address: req.body.address.trim(),
-    tax_number: req.body.tax_number.trim(),
-  };
-
-  const validateResult = validateCompany(company);
+  const validateResult = validateCompany(req.body);
   if (validateResult.error) {
     return res
       .status(400)
@@ -38,10 +31,10 @@ async function addCompany(req, res, next) {
   }
 
   const dbCompany = new Company({
-    name: company.name,
-    phone: company.phone,
-    address: company.address,
-    tax_number: company.tax_number,
+    name: req.body.name.trim(),
+    phone: req.body.company.phone.trim(),
+    address: req.body.company.address.trim(),
+    tax_number: req.body.company.tax_number.trim(),
   });
 
   const result = await dbCompany.save();
@@ -55,10 +48,8 @@ async function addCompany(req, res, next) {
 }
 
 async function editCompany(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'Invalid company id'));
@@ -71,13 +62,6 @@ async function editCompany(req, res, next) {
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
-  const dbCheck = await Company.findOne({ _id: id });
-  if (!dbCheck) {
-    return res
-      .status(404)
-      .json(errorResponse(res.statusCode, 'Company not found'));
-  }
-
   const result = await Company.findOneAndUpdate(
     { _id: id },
     {
@@ -87,23 +71,27 @@ async function editCompany(req, res, next) {
         address: req.body.address.trim(),
         tax_number: req.body.tax_number.trim(),
       },
-    }
+    },
+    { new: true }
   );
 
   if (!result) {
     return res
       .status(500)
-      .json(errorResponse(res.statusCode, 'Cannot edit company'));
+      .json(
+        errorResponse(
+          res.statusCode,
+          'Cannot edit company or company not exist'
+        )
+      );
   }
 
-  return res.status(200).json(successResponse(res.statusCode, 'Ok'));
+  return res.status(200).json(successResponse(res.statusCode, 'Ok', result));
 }
 
 async function deleteCompany(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'Invalid company id'));

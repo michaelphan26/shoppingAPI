@@ -5,10 +5,7 @@ const _ = require('lodash');
 const { successResponse, errorResponse } = require('../models/ResponseAPI');
 const isBase64 = require('is-base64');
 const { ReceiptDetail } = require('../database/ReceiptDetailModel');
-
-function productDetailResponse(product) {
-  return _.omit(product.toObject(), ['__v']);
-}
+const { checkID } = require('./CommonController');
 
 //User
 async function getProductList(req, res, next) {
@@ -29,10 +26,8 @@ async function getProductList(req, res, next) {
 }
 
 async function getProductDetail(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = await checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'Invalid product id'));
@@ -45,11 +40,7 @@ async function getProductDetail(req, res, next) {
       .json(errorResponse(res.statusCode, 'Cannot get product detail'));
   }
 
-  return res
-    .status(200)
-    .json(
-      successResponse(res.statusCode, 'OK', productDetailResponse(product))
-    );
+  return res.status(200).json(successResponse(res.statusCode, 'OK', product));
 }
 
 //Admin
@@ -71,10 +62,8 @@ async function getProductListAdmin(req, res, next) {
 }
 
 async function getProductDetailAdmin(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'Invalid product id'));
@@ -87,17 +76,20 @@ async function getProductDetailAdmin(req, res, next) {
       .json(errorResponse(res.statusCode, 'Cannot get product detail'));
   }
 
-  return res
-    .status(200)
-    .json(
-      successResponse(res.statusCode, 'OK', productDetailResponse(product))
-    );
+  return res.status(200).json(successResponse(res.statusCode, 'OK', product));
 }
 
 async function addProduct(req, res, next) {
+  const validateResult = validateProduct(req.body);
+  if (validateResult.error) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, validateResult.error.message));
+  }
+
   const checkImage = isBase64(req.body.image.trim(), {
     allowMime: false,
-    allowEmpty: true,
+    allowEmpty: false,
   });
   if (!checkImage) {
     return res
@@ -108,13 +100,6 @@ async function addProduct(req, res, next) {
           'Image error. Image empty or forgot to remove mime'
         )
       );
-  }
-
-  const validateResult = validateProduct(req.body);
-  if (validateResult.error) {
-    return res
-      .status(400)
-      .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
   const dbProduct = new Product({
@@ -142,10 +127,8 @@ async function addProduct(req, res, next) {
 }
 
 async function deleteProduct(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'Invalid product id'));
@@ -159,8 +142,8 @@ async function deleteProduct(req, res, next) {
       .json(errorResponse(res.statusCode, 'Cannot delete this product'));
   }
 
-  const result = await Product.findByIdAndDelete({ _id: id });
-  if (result) {
+  const result = await Product.findOneAndDelete({ _id: id });
+  if (!result) {
     return res
       .status(400)
       .json(errorResponse(res.statusCode, 'Failed to delete product'));
@@ -172,18 +155,23 @@ async function deleteProduct(req, res, next) {
 }
 
 async function editProduct(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'Invalid product id'));
   }
 
+  const validateResult = validateProduct(req.body);
+  if (validateResult.error) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, validateResult.error.message));
+  }
+
   const checkImage = isBase64(req.body.image.trim(), {
     allowMime: false,
-    allowEmpty: true,
+    allowEmpty: false,
   });
   if (!checkImage) {
     return res
@@ -194,13 +182,6 @@ async function editProduct(req, res, next) {
           'Image error. Image empty or forgot to remove mime'
         )
       );
-  }
-
-  const validateResult = validateProduct(req.body);
-  if (validateResult.error) {
-    return res
-      .status(400)
-      .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
   const result = await Product.findOneAndUpdate(
@@ -217,8 +198,10 @@ async function editProduct(req, res, next) {
         image: req.body.image.trim(),
         id_category: req.body.id_category.trim(),
       },
-    }
+    },
+    { new: true }
   );
+
   if (!result) {
     return res
       .status(400)
@@ -227,7 +210,7 @@ async function editProduct(req, res, next) {
 
   return res
     .status(200)
-    .json(successResponse(res.statusCode, 'Edit product successful'));
+    .json(successResponse(res.statusCode, 'Edit product successful', result));
 }
 
 module.exports = {

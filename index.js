@@ -18,6 +18,8 @@ const categoryRoutes = require('./routes/CategoryRoute');
 const receiptTypeRoutes = require('./routes/ReceiptTypeRoute');
 const ioTypeRoutes = require('./routes/IOTypeRoute');
 const companyRoutes = require('./routes/CompanyRoute');
+const ioProductRoutes = require('./routes/IOProductRoute');
+const ioProductDetailRoutes = require('./routes/IOProductDetailRoute');
 
 //Check private key
 if (!config.get('jwtPrivateKey')) {
@@ -56,6 +58,8 @@ app.use(`${api}/category`, categoryRoutes);
 app.use(`${api}/receipt-type`, receiptTypeRoutes);
 app.use(`${api}/io-type`, ioTypeRoutes);
 app.use(`${api}/company`, companyRoutes);
+app.use(`${api}/io-product`, ioProductRoutes);
+app.use(`${api}/io-detail`, ioProductDetailRoutes);
 
 //Connect DB
 mongoose

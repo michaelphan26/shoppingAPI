@@ -3,6 +3,7 @@ const { Product } = require('../database/ProductModel');
 const mongoose = require('mongoose');
 const { errorResponse, successResponse } = require('../models/ResponseAPI');
 const { validateCategory } = require('../validators/CategoryValidator');
+const { checkID } = require('./CommonController');
 
 async function getCategoryList(req, res, next) {
   const categoryList = await Category.find({});
@@ -56,13 +57,11 @@ async function addCategory(req, res, next) {
 }
 
 async function editCategory(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = await checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, 'Invalid role id'));
+      .json(errorResponse(res.statusCode, 'Invalid category id'));
   }
 
   const validateResult = validateCategory(req.body);
@@ -78,23 +77,27 @@ async function editCategory(req, res, next) {
       $set: {
         name: req.body.name.trim(),
       },
-    }
+    },
+    { new: true }
   );
 
   if (!result) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, 'Cannot edit category'));
+      .json(
+        errorResponse(
+          res.statusCode,
+          'Cannot edit category or category not existed'
+        )
+      );
   }
 
-  return res.status(200).json(successResponse(res.statusCode, 'Ok', null));
+  return res.status(200).json(successResponse(res.statusCode, 'Ok', result));
 }
 
 async function deleteCategory(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = await checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'Invalid category id'));
@@ -104,17 +107,22 @@ async function deleteCategory(req, res, next) {
   if (dbCheck) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, 'Cannot delete this category'));
+      .errorResponse(res.statusCode, 'Cannot delete this category');
   }
 
   const result = await Category.findOneAndDelete({ _id: id });
   if (!result) {
     return res
       .status(500)
-      .json(errorResponse(res.statusCode, 'Cannot delete this category'));
+      .json(
+        errorResponse(
+          res.statusCode,
+          'Cannot delete this category or category not exist'
+        )
+      );
   }
 
-  return res.status(200).json(successResponse(res.statusCode, 'Ok', null));
+  return res.status(200).json(successResponse(res.statusCode, 'Ok'));
 }
 
 module.exports = { getCategoryList, addCategory, editCategory, deleteCategory };

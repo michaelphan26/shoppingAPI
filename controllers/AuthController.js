@@ -17,26 +17,24 @@ async function saveUserWithInfo(dbUser, dbUserInfo) {
   try {
     await dbUserInfo.save();
     await dbUser.save();
+    await session.commitTransaction();
+    await session.endSession();
+    return true;
   } catch (err) {
     console.log(err);
     await session.abortTransaction();
     await session.endSession();
     return false;
   }
-  await session.commitTransaction();
-  await session.endSession();
-  return true;
 }
 
-async function sendToken(res, msg, user) {
-  const role = await Role.findOne({ _id: user.id_role });
+async function sendToken(res, msg, user, roleName) {
   const tokenDetail = {
     email: user.email,
     id_userInfo: user.id_userInfo,
     id_role: user.id_role,
-    role_name: role.name,
+    role_name: roleName,
   };
-  console.log(tokenDetail);
   const token = await user.generateToken(tokenDetail);
   return res
     .header('x-auth-token', token)
@@ -45,6 +43,13 @@ async function sendToken(res, msg, user) {
 }
 
 async function authRegister(req, res, next) {
+  const validateResult = validateRegister(req.body);
+  if (validateResult.error) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, validateResult.error.message));
+  }
+
   let avai = await User.findOne({ email: req.body.email.trim() });
   if (avai) {
     return res
@@ -52,39 +57,22 @@ async function authRegister(req, res, next) {
       .json(errorResponse(res.statusCode, 'Email is already registered'));
   }
 
-  //dd-mm-yy with 24h
-
-  const user = {
-    email: req.body.email,
-    password: req.body.password,
-    name: req.body.name,
-    phone: req.body.phone,
-    address: req.body.address,
-  };
-
-  const validateResult = validateRegister(user);
-  if (validateResult.error) {
-    return res
-      .status(400)
-      .json(errorResponse(res.statusCode, validateResult.error.message));
-  }
-
   const salt = await bcrypt.genSalt(10);
-  user.password = await bcrypt.hash(user.password, salt);
+  req.body.password = await bcrypt.hash(req.body.password.trim(), salt);
 
   const role = await Role.findOne({ name: 'User' });
 
   const date = new Date();
   const dbUserInfo = new UserInfo({
-    name: user.name.trim(),
-    phone: user.phone.trim(),
-    address: user.address.trim(),
+    name: req.body.name.trim(),
+    phone: req.body.phone.trim(),
+    address: req.body.address.trim(),
     joinDate: date,
   });
 
   const dbUser = new User({
-    email: user.email.trim(),
-    password: user.password.trim(),
+    email: req.body.email.trim(),
+    password: req.body.password.trim(),
     id_role: role._id,
     id_userInfo: dbUserInfo._id,
   });
@@ -93,26 +81,21 @@ async function authRegister(req, res, next) {
   if (!result) {
     return res
       .status(500)
-      .json(errorResponse(res.statusCode, 'Something is wrong'));
+      .json(errorResponse(res.statusCode, 'Cannot register'));
   }
 
-  sendToken(res, 'OK', dbUser);
+  sendToken(res, 'OK', dbUser, role.name);
 }
 
 async function authLogin(req, res, next) {
-  const user = {
-    email: req.body.email,
-    password: req.body.password,
-  };
-
-  const validateResult = validateLogin(user);
+  const validateResult = validateLogin(req.body);
   if (validateResult.error) {
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
-  const dbUser = await User.findOne({ email: user.email.trim() });
+  const dbUser = await User.findOne({ email: req.body.email.trim() });
   if (!dbUser) {
     return res
       .status(400)
@@ -127,7 +110,9 @@ async function authLogin(req, res, next) {
       .json(errorResponse(res.statusCode, 'Email or password is incorrect'));
   }
 
-  sendToken(res, 'OK', dbUser);
+  const role = await Role.findOne({ _id: dbUser.id_role });
+
+  sendToken(res, 'OK', dbUser, role.name);
 }
 
 module.exports = {

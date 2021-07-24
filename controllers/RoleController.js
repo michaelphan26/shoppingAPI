@@ -24,7 +24,7 @@ async function addRole(req, res, next) {
     return res.status(404).json(validateName.error.message);
   }
 
-  const check = await Role.findOne({ name: req.body.name });
+  const check = await Role.findOne({ name: req.body.name.trim() });
   if (check) {
     return res.status(404).json(errorResponse(res.statusCode, 'Role existed'));
   }
@@ -44,10 +44,8 @@ async function addRole(req, res, next) {
 }
 
 async function editRole(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'Invalid role id'));
@@ -66,23 +64,24 @@ async function editRole(req, res, next) {
       $set: {
         name: req.body.name.trim(),
       },
-    }
+    },
+    { new: true }
   );
 
   if (!result) {
     return res
       .status(500)
-      .json(errorResponse(res.statusCode, 'Cannot edit role'));
+      .json(
+        errorResponse(res.statusCode, 'Cannot edit role or role not exist')
+      );
   }
 
-  return res.status(200).json(successResponse(res.statusCode, 'Ok', null));
+  return res.status(200).json(successResponse(res.statusCode, 'Ok', result));
 }
 
 async function deleteRole(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
+  const id = checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'Invalid role id'));
@@ -99,10 +98,10 @@ async function deleteRole(req, res, next) {
   if (!result) {
     return res
       .status(500)
-      .json(errorResponse(res.statusCode, 'Cannot edit role'));
+      .json(errorResponse(res.statusCode, 'Cannot delete role'));
   }
 
-  return res.status(200).json(successResponse(res.statusCode, 'Ok', null));
+  return res.status(200).json(successResponse(res.statusCode, 'Ok'));
 }
 
 module.exports = { getRoleList, addRole, editRole, deleteRole };

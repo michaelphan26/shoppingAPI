@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const { Receipt } = require('../database/ReceiptModel');
-const { ReceiptType } = require('../database/ReceipTypeModel');
+const { ReceiptType } = require('../database/ReceiptTypeModel');
 const { errorResponse, successResponse } = require('../models/ResponseAPI');
 const { validateReceiptType } = require('../validators/ReceiptTypeValidator');
 
@@ -44,11 +44,8 @@ async function addReceiptType(req, res, next) {
 }
 
 async function editReceiptType(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
-    console.log(err);
+  const id = checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'Invalid receipt type id'));
@@ -65,7 +62,7 @@ async function editReceiptType(req, res, next) {
   if (!dbCheck) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, 'Receipt type not existed'));
+      .json(errorResponse(res.statusCode, 'Receipt type not exist'));
   }
 
   const result = await ReceiptType.findOneAndUpdate(
@@ -74,24 +71,27 @@ async function editReceiptType(req, res, next) {
       $set: {
         name: req.body.name.trim(),
       },
-    }
+    },
+    { new: true }
   );
 
   if (!result) {
     return res
       .staus(500)
-      .json(errorResponse(res.statusCode, 'Cannot edit receipt type'));
+      .json(
+        errorResponse(
+          res.statusCode,
+          'Cannot edit receipt type or receipt type not exist'
+        )
+      );
   }
 
-  return res.status(200).json(successResponse(res.statusCode, 'Ok'));
+  return res.status(200).json(successResponse(res.statusCode, 'Ok', result));
 }
 
 async function deleteReceiptType(req, res, next) {
-  let id;
-  try {
-    id = new mongoose.Types.ObjectId(req.params.id);
-  } catch (err) {
-    console.log(err);
+  const id = checkID(req.params.id);
+  if (!id) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'Invalid receipt type id'));

@@ -1,0 +1,138 @@
+const mongoose = require('mongoose');
+const { IOProduct } = require('../database/IOProductModel');
+const { IOProductDetail } = require('../database/IOProductDetailModel');
+const { IOType } = require('../database/IOTypeModel');
+const { errorResponse, successResponse } = require('../models/ResponseAPI');
+const { validateIOProduct } = require('../validators/IOProductValidator');
+const { Product } = require('../database/ProductModel');
+
+async function changeStock(io, type) {
+  const session = await mongoose.startSession();
+  await session.startTransaction();
+  try {
+    const date = new Date();
+    const ioProduct = new IOProduct({
+      date: date,
+      id_ioType: io.id_ioType,
+    });
+
+    const saveIOProduct = await ioProduct.save();
+    if (!saveIOProduct) throw new err('Cannot save IO product');
+
+    for (const index in io.productList) {
+      const productInDB = await Product.findOne({
+        _id: io.productList[index].id_product,
+      });
+
+      if (!productInDB) throw new err('Product not available');
+      if (type === 'increase') {
+        productInDB.stock =
+          parseInt(productInDB.stock) +
+          parseInt(io.productList[index].quantity);
+      } else if (type === 'decrease') {
+        if (productInDB.stock < io.productList[index].quantity) {
+          throw new err('Not enough quantity');
+        }
+        productInDB.stock =
+          parseInt(productInDB.stock) -
+          parseInt(io.productList[index].quantity);
+      }
+
+      const result = await productInDB.save();
+      if (!result) throw new err('Cannot increase stock');
+
+      console.log('detail');
+      const ioProductDetail = await new IOProductDetail({
+        id_IOProduct: ioProduct._id,
+        id_product: io.productList[index].id_product,
+        quantity: io.productList[index].quantity,
+        price: io.productList[index].price,
+        id_company: io.productList[index].id_company,
+      });
+
+      const save = ioProductDetail.save();
+      if (!save) throw new err('Cannot save io detail');
+    }
+
+    await session.commitTransaction();
+    await session.endSession();
+    return true;
+  } catch (err) {
+    await session.abortTransaction();
+    await session.endSession();
+    console.log(err);
+    return false;
+  }
+}
+
+async function saveIO(io, res) {
+  const session = await mongoose.startSession();
+  await session.startTransaction();
+  try {
+    let result;
+    if (
+      io.name.toLowerCase() === 'import' ||
+      io.name.toLowerCase() === 'nhập'
+    ) {
+      result = await changeStock(io, 'increase');
+    } else if (
+      io.name.toLowerCase() === 'export' ||
+      io.name.toLowerCase() === 'xuất'
+    ) {
+      result = await changeStock(io, 'decrease');
+    }
+
+    if (result) {
+      await session.commitTransaction();
+      await session.endSession();
+      res.status(200).json(successResponse(res.statusCode, 'Ok'));
+    } else throw new err();
+  } catch (err) {
+    await session.abortTransaction();
+    await session.endSession();
+    res.status(500).json(errorResponse(res.statusCode, 'Failed to save io'));
+  }
+}
+
+async function getIOList(req, res, next) {
+  const ioList = await IOProduct.find({});
+
+  if (!ioList) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Cannot get io list'));
+  } else if (ioList.length === 0) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'IO list currently empty'));
+  }
+
+  return res.status(200).json(successResponse(res.statusCode, 'Ok', ioList));
+}
+
+async function addIO(req, res, next) {
+  const validateResult = validateIOProduct(req.body);
+
+  if (validateResult.error) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, validateResult.error.message));
+  }
+
+  const ioTypeCheck = await IOType.findOne({ _id: req.body.id_ioType });
+  if (!ioTypeCheck) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Cannot find io type'));
+  }
+
+  const io = {
+    id_ioType: req.body.id_ioType,
+    name: ioTypeCheck.toObject().name,
+    productList: req.body.productList,
+  };
+
+  return await saveIO(io, res);
+}
+
+module.exports = { getIOList, addIO };
