@@ -8,7 +8,7 @@ const {
 } = require('../controllers/RoleController');
 const { adminAuth } = require('../middlewares/AuthMiddleware');
 
-router.get('/role-list', adminAuth, getRoleList);
+router.get('/role-list', getRoleList);
 
 router.post('/add-role', adminAuth, addRole);
 

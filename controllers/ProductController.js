@@ -102,19 +102,35 @@ async function addProduct(req, res, next) {
       );
   }
 
-  const dbProduct = new Product({
+  dbProduct = new Product({
     name: req.body.name.trim(),
     brand: req.body.brand.trim(),
     price: req.body.price.trim(),
     description: req.body.description.trim(),
-    stock: req.body.stock.trim(),
+    stock: 0,
     discount: req.body.discount.trim(),
     status: req.body.status,
     image: req.body.image.trim(),
     id_category: req.body.id_category.trim(),
   });
 
-  const result = await dbProduct.save();
+  reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const nameCheck = await Product.findOne({ name: reg });
+  if (nameCheck) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Product name existed'));
+  }
+
+  let result;
+  try {
+    result = await dbProduct.save();
+  } catch (err) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Product name existed'));
+  }
+
   if (!result) {
     return res
       .status(400)
@@ -134,7 +150,7 @@ async function deleteProduct(req, res, next) {
       .json(errorResponse(res.statusCode, 'Invalid product id'));
   }
 
-  const ioCheck = await IOProductDetail.findOne({ id_IOProduct: id });
+  const ioCheck = await IOProductDetail.findOne({ id_product: id });
   const receiptCheck = await ReceiptDetail.findOne({ id_product: id });
   if (ioCheck || receiptCheck || (ioCheck && receiptCheck)) {
     return res
@@ -142,7 +158,15 @@ async function deleteProduct(req, res, next) {
       .json(errorResponse(res.statusCode, 'Cannot delete this product'));
   }
 
-  const result = await Product.findOneAndDelete({ _id: id });
+  const result = await Product.findOneAndUpdate(
+    { _id: id },
+    {
+      $set: {
+        status: false,
+      },
+    },
+    { new: true }
+  );
   if (!result) {
     return res
       .status(400)
@@ -192,7 +216,6 @@ async function editProduct(req, res, next) {
         brand: req.body.brand.trim(),
         price: req.body.price,
         description: req.body.description.trim(),
-        stock: req.body.stock,
         discount: req.body.discount,
         status: req.body.status,
         image: req.body.image.trim(),

@@ -10,6 +10,7 @@ const {
 const { successResponse, errorResponse } = require('../models/ResponseAPI');
 const { saveUserWithInfo } = require('./AuthController');
 const bcrypt = require('bcrypt');
+const { Role } = require('../database/RoleModel');
 
 //User
 async function getUserDetail(req, res, next) {
@@ -123,7 +124,7 @@ async function editUserDetailAdmin(req, res, next) {
   const session = await mongoose.startSession();
   await session.startTransaction();
   try {
-    await UserInfo.findOneAndUpdate(
+    const saveInfo = await UserInfo.findOneAndUpdate(
       { _id: id_userInfo },
       {
         $set: {
@@ -131,17 +132,21 @@ async function editUserDetailAdmin(req, res, next) {
           phone: req.body.phone.trim(),
           address: req.body.address.trim(),
         },
-      }
-    );
+      },
+      { new: true }
+    ).session(session);
+    if (!saveInfo) throw new Error('User info not exist');
 
-    await User.findOneAndUpdate(
+    const saveUser = await User.findOneAndUpdate(
       { id_userInfo: id_userInfo },
       {
         $set: {
           id_role: req.body.id_role,
         },
-      }
-    );
+      },
+      { new: true }
+    ).session(session);
+    if (!saveUser) throw new Error('User not exist');
     await session.commitTransaction();
     await session.endSession();
   } catch (err) {

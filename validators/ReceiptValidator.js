@@ -15,7 +15,6 @@ function validateReceipt(receipt) {
       .required()
       .min(1),
     total: joi.number().min(1000).max(1000000000).required(),
-    id_receiptType: joi.objectId().required(),
   });
 
   return schema.validate(receipt);

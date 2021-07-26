@@ -6,9 +6,7 @@ const { errorResponse, successResponse } = require('../models/ResponseAPI');
 const { validateIOProduct } = require('../validators/IOProductValidator');
 const { Product } = require('../database/ProductModel');
 
-async function changeStock(io, type) {
-  const session = await mongoose.startSession();
-  await session.startTransaction();
+async function changeStock(io, type, session) {
   try {
     const date = new Date();
     const ioProduct = new IOProduct({
@@ -16,32 +14,31 @@ async function changeStock(io, type) {
       id_ioType: io.id_ioType,
     });
 
-    const saveIOProduct = await ioProduct.save();
-    if (!saveIOProduct) throw new err('Cannot save IO product');
+    const saveIOProduct = await ioProduct.save({ session });
+    if (!saveIOProduct) throw new Error('Cannot save IO product');
 
     for (const index in io.productList) {
       const productInDB = await Product.findOne({
         _id: io.productList[index].id_product,
       });
 
-      if (!productInDB) throw new err('Product not available');
+      if (!productInDB) throw new Error('Product not available');
       if (type === 'increase') {
         productInDB.stock =
           parseInt(productInDB.stock) +
           parseInt(io.productList[index].quantity);
       } else if (type === 'decrease') {
         if (productInDB.stock < io.productList[index].quantity) {
-          throw new err('Not enough quantity');
+          throw new Error('Not enough quantity');
         }
         productInDB.stock =
           parseInt(productInDB.stock) -
           parseInt(io.productList[index].quantity);
       }
 
-      const result = await productInDB.save();
-      if (!result) throw new err('Cannot increase stock');
+      const result = await productInDB.save({ session });
+      if (!result) throw new Error('Cannot increase stock');
 
-      console.log('detail');
       const ioProductDetail = await new IOProductDetail({
         id_IOProduct: ioProduct._id,
         id_product: io.productList[index].id_product,
@@ -50,16 +47,11 @@ async function changeStock(io, type) {
         id_company: io.productList[index].id_company,
       });
 
-      const save = ioProductDetail.save();
-      if (!save) throw new err('Cannot save io detail');
+      const save = ioProductDetail.save({ session });
+      if (!save) throw new Error('Cannot save io detail');
     }
-
-    await session.commitTransaction();
-    await session.endSession();
     return true;
   } catch (err) {
-    await session.abortTransaction();
-    await session.endSession();
     console.log(err);
     return false;
   }
@@ -72,21 +64,23 @@ async function saveIO(io, res) {
     let result;
     if (
       io.name.toLowerCase() === 'import' ||
-      io.name.toLowerCase() === 'nhập'
+      io.name.toLowerCase() === 'nhập' ||
+      io.name.toLowerCase() === 'nhap'
     ) {
-      result = await changeStock(io, 'increase');
+      result = await changeStock(io, 'increase', session);
     } else if (
       io.name.toLowerCase() === 'export' ||
-      io.name.toLowerCase() === 'xuất'
+      io.name.toLowerCase() === 'xuất' ||
+      io.name.toLowerCase() === 'xuat'
     ) {
-      result = await changeStock(io, 'decrease');
+      result = await changeStock(io, 'decrease', session);
     }
 
     if (result) {
       await session.commitTransaction();
       await session.endSession();
       res.status(200).json(successResponse(res.statusCode, 'Ok'));
-    } else throw new err();
+    } else throw new Error();
   } catch (err) {
     await session.abortTransaction();
     await session.endSession();
@@ -105,6 +99,12 @@ async function getIOList(req, res, next) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'IO list currently empty'));
+  }
+
+  for (const index in ioList) {
+    const ioObj = ioList[index].toObject();
+    ioObj.date = new Date(ioObj.date).toLocaleString('en-GB');
+    ioList[index] = ioObject;
   }
 
   return res.status(200).json(successResponse(res.statusCode, 'Ok', ioList));

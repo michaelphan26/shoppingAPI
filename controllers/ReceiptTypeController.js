@@ -3,6 +3,7 @@ const { Receipt } = require('../database/ReceiptModel');
 const { ReceiptType } = require('../database/ReceiptTypeModel');
 const { errorResponse, successResponse } = require('../models/ResponseAPI');
 const { validateReceiptType } = require('../validators/ReceiptTypeValidator');
+const { checkID } = require('./CommonController');
 
 async function getReceiptTypeList(req, res, next) {
   const typeList = await ReceiptType.find({});
@@ -29,6 +30,14 @@ async function addReceiptType(req, res, next) {
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
+  reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const nameCheck = await ReceiptType.findOne({ name: reg });
+  if (nameCheck) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Receipt type existed'));
+  }
+
   const dbType = new ReceiptType({
     name: req.body.name.trim(),
   });
@@ -44,7 +53,7 @@ async function addReceiptType(req, res, next) {
 }
 
 async function editReceiptType(req, res, next) {
-  const id = checkID(req.params.id);
+  const id = await checkID(req.params.id);
   if (!id) {
     return res
       .status(404)
@@ -56,13 +65,6 @@ async function editReceiptType(req, res, next) {
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
-  }
-
-  const dbCheck = await ReceiptType.findOne({ _id: id });
-  if (!dbCheck) {
-    return res
-      .status(400)
-      .json(errorResponse(res.statusCode, 'Receipt type not exist'));
   }
 
   const result = await ReceiptType.findOneAndUpdate(

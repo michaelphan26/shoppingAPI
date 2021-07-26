@@ -1,12 +1,22 @@
-const express=require('express')
+const express = require('express');
 const router = express.Router();
-const {auth} = require('../middlewares/AuthMiddleware');
-const {getReceiptList, getReceiptDetail, addReceipt}=require('../controllers/ReceiptController')
+const { auth } = require('../middlewares/AuthMiddleware');
+const {
+  getReceiptList,
+  getReceiptDetail,
+  addReceipt,
+  checkoutReceipt,
+  getCartOnLogin,
+} = require('../controllers/ReceiptController');
 
-router.get('/receipt-list',auth,getReceiptList)
+router.get('/receipt-list', getReceiptList);
 
-router.get('/receipt-detail/:id', auth, getReceiptDetail);
+router.get('/receipt-detail/:id', getReceiptDetail);
 
-router.post('/add-receipt',auth ,addReceipt)
+router.post('/add-receipt', auth, addReceipt);
 
-module.exports=router
+router.post('/receipt-checkout/:id', auth, checkoutReceipt);
+
+router.get('/get-cart', auth, getCartOnLogin);
+
+module.exports = router;

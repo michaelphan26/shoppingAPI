@@ -30,6 +30,14 @@ async function addCompany(req, res, next) {
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
+  reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const nameCheck = Company.findOne({ name: reg });
+  if (nameCheck) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Company name existed'));
+  }
+
   const dbCompany = new Company({
     name: req.body.name.trim(),
     phone: req.body.company.phone.trim(),

@@ -7,7 +7,6 @@ const receiptSchema = mongoose.Schema({
     minLength: 5,
     maxLength: 256,
     trim: true,
-    unique: true,
   },
   total: {
     type: Number,

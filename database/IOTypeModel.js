@@ -7,6 +7,7 @@ const IOTypeSchema = mongoose.Schema({
     trim: true,
     minLength: 2,
     maxLength: 30,
+    unique: true,
   },
 });
 

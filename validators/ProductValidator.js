@@ -7,7 +7,6 @@ function validateProduct(product) {
     brand: joi.string().min(3).max(20).trim().required(),
     price: joi.number().min(1000).max(1000000000).required(),
     description: joi.string().trim().min(5).max(200).required(),
-    stock: joi.number().min(0).max(1000).required(),
     discount: joi.number().min(0).max(100).required(),
     status: joi.boolean().required(),
     id_category: joi.objectId().required(),

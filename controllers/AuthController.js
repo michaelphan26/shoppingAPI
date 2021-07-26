@@ -15,8 +15,8 @@ async function saveUserWithInfo(dbUser, dbUserInfo) {
   const session = await mongoose.startSession();
   await session.startTransaction();
   try {
-    await dbUserInfo.save();
-    await dbUser.save();
+    await dbUserInfo.save({ session });
+    await dbUser.save({ session });
     await session.commitTransaction();
     await session.endSession();
     return true;
@@ -50,7 +50,8 @@ async function authRegister(req, res, next) {
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
-  let avai = await User.findOne({ email: req.body.email.trim() });
+  reg = new RegExp(`^${req.body.email.trim()}$`, 'i');
+  let avai = await User.findOne({ email: reg });
   if (avai) {
     return res
       .status(400)
@@ -60,7 +61,7 @@ async function authRegister(req, res, next) {
   const salt = await bcrypt.genSalt(10);
   req.body.password = await bcrypt.hash(req.body.password.trim(), salt);
 
-  const role = await Role.findOne({ name: 'User' });
+  const role = await Role.findOne({ name: /^user$/i });
 
   const date = new Date();
   const dbUserInfo = new UserInfo({

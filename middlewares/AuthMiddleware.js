@@ -25,7 +25,8 @@ function adminAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, config.get('jwtPrivateKey'));
-    if (payload.role_name != 'Admin') {
+    const reg = new RegExp(/^admin&/, 'i');
+    if (payload.role_name.match(reg)) {
       return res.status(404).send('Resources not found');
     }
     req.user = payload;
