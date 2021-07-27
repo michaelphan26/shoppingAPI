@@ -89,6 +89,7 @@ async function authRegister(req, res, next) {
 }
 
 async function authLogin(req, res, next) {
+  console.log(req.body);
   const validateResult = validateLogin(req.body);
   if (validateResult.error) {
     return res
@@ -103,7 +104,7 @@ async function authLogin(req, res, next) {
       .json(errorResponse(res.statusCode, 'Email or password is incorrect'));
   }
 
-  const check = bcrypt.compare(req.body.password.trim(), dbUser.password);
+  const check = await bcrypt.compare(req.body.password.trim(), dbUser.password);
 
   if (!check) {
     return res

@@ -11,17 +11,11 @@ const { successResponse, errorResponse } = require('../models/ResponseAPI');
 const { saveUserWithInfo } = require('./AuthController');
 const bcrypt = require('bcrypt');
 const { Role } = require('../database/RoleModel');
+const { checkID } = require('./CommonController');
 
 //User
 async function getUserDetail(req, res, next) {
-  const id = checkID(req.params.id);
-  if (!id) {
-    return res
-      .status(404)
-      .json(errorResponse(res.statusCode, 'Invalid user id'));
-  }
-
-  const userInfo = await UserInfo.findOne({ _id: id });
+  const userInfo = await UserInfo.findOne({ _id: req.user.id_userInfo });
   if (!userInfo) {
     res
       .status(400)
@@ -45,11 +39,11 @@ async function getUserDetail(req, res, next) {
 }
 
 async function editUserDetail(req, res, next) {
-  const id = checkID(req.params.id);
+  const id = await checkID(req.params.id);
   if (!id) {
     return res
       .status(404)
-      .json(errorResponse(res.statusCode, 'Invalid user id'));
+      .json(errorResponse(res.statusCode, 'Invalid user info id'));
   }
 
   const validateResult = validateEditUser(req.body);
@@ -72,6 +66,7 @@ async function editUserDetail(req, res, next) {
   );
 
   if (!result) {
+    console.log('C');
     return res
       .status(400)
       .json(
