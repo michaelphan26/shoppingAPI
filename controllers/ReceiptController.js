@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const { validateReceipt } = require('../validators/ReceiptValidator');
 const { successResponse, errorResponse } = require('../models/ResponseAPI');
 const { checkID } = require('./CommonController');
+const _ = require('lodash');
 
 // async function increaseStock(detailList) {
 //   console.log('increase');
@@ -101,8 +102,6 @@ async function getReceiptList(req, res, next) {
     receiptList[index] = receiptObj;
   }
 
-  console.log(receiptList);
-
   return res
     .status(200)
     .json(successResponse(res.statusCode, 'OK', receiptList));
@@ -150,6 +149,8 @@ async function saveReceipt(receipt, req, res) {
       .status(400)
       .json(errorResponse(res.statusCode, 'Receipt type not exist'));
   }
+
+  console.log('B');
 
   const session = await mongoose.startSession();
   await session.startTransaction();
@@ -244,6 +245,7 @@ async function saveReceipt(receipt, req, res) {
     if (!saveReceipt) {
       throw new Error('Failed to save receipt');
     }
+    console.log('OK');
     await session.commitTransaction();
     await session.endSession();
     return res.status(200).json(successResponse(res.statusCode, 'OK'));
@@ -284,6 +286,7 @@ async function addReceipt(req, res, next) {
     id_receiptType: id_receiptType,
   };
 
+  console.log('Saving');
   return await saveReceipt(receipt, req, res);
 }
 
@@ -449,25 +452,60 @@ async function checkoutReceipt(req, res, next) {
   }
 }
 
+async function getReceiptListNoResponse(req) {
+  const receiptList = await Receipt.find({ email: req.user.email });
+  if (!receiptList) {
+    return null;
+  } else if (receiptList.length === 0) {
+    return null;
+  }
+  for (const index in receiptList) {
+    const receiptObj = receiptList[index].toObject();
+    receiptObj.date = new Date(receiptObj.date).toLocaleString('en-GB');
+    receiptList[index] = receiptObj;
+  }
+
+  return receiptList;
+}
+
 async function getCartOnLogin(req, res, next) {
-  const receiptList = getReceiptList(req, res, next);
+  const receiptList = await getReceiptListNoResponse(req);
+  if (receiptList === null) return;
   let cart;
   for (const index in receiptList) {
-    const id_receiptType = receiptList[index].toObject().id_receiptType;
-    const name = await ReceiptType.findOne({ _id: id_receiptType });
+    const id_receiptType = receiptList[index].id_receiptType;
+    const receipt = await ReceiptType.findOne({ _id: id_receiptType });
     if (
-      name.toLowerCase() === 'cart' ||
-      name.toLowerCase() === 'gio hang' ||
-      name.toLowerCase() === 'giỏ hàng'
+      receipt &&
+      (receipt.name.toLowerCase() === 'cart' ||
+        receipt.name.toLowerCase() === 'gio hang' ||
+        receipt.name.toLowerCase() === 'giỏ hàng')
     ) {
-      cart = receiptList[index].toObject();
+      cart = receiptList[index];
     }
   }
   if (!cart) {
     return res.status(404).json(errorResponse(res.statusCode, 'No cart exist'));
   }
 
-  return res.status(200).json(successResponse(res.statusCode, 'Ok', cart));
+  const receiptDetail = await ReceiptDetail.find(
+    { id_receipt: cart._id },
+    { _id: 0, id_receipt: 0, __v: 0 }
+  );
+  if (!receiptDetail) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'No detail exist'));
+  }
+
+  return res
+    .status(200)
+    .json(
+      successResponse(res.statusCode, 'Ok', {
+        productList: receiptDetail,
+        total: cart.total,
+      })
+    );
 }
 
 module.exports = {

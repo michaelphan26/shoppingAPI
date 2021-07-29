@@ -126,4 +126,51 @@ async function deleteCategory(req, res, next) {
   return res.status(200).json(successResponse(res.statusCode, 'Ok'));
 }
 
-module.exports = { getCategoryList, addCategory, editCategory, deleteCategory };
+async function getProductListByCategory(req, res, next) {
+  const id = await checkID(req.params.id);
+  if (!id) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid category id'));
+  }
+
+  const productList = await Product.find({ id_category: id });
+  if (!productList) {
+    return res
+      .status(404)
+      .json(
+        errorResponse(res.statusCode, 'This category is not having product yet')
+      );
+  }
+
+  return res
+    .status(200)
+    .json(successResponse(res.statusCode, 'Ok', productList));
+}
+
+async function getCategoryName(req, res, next) {
+  const id = await checkID(req.params.id);
+  if (!id) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid category id'));
+  }
+
+  const result = await Category.findOne({ _id: id }, { _id: 0, __v: 0 });
+  if (!result) {
+    return res
+      .status(500)
+      .json(errorResponse(res.statusCode, 'Cannot get category name'));
+  }
+
+  return res.status(200).json(successResponse(res.statusCode, 'Ok', result));
+}
+
+module.exports = {
+  getCategoryList,
+  addCategory,
+  editCategory,
+  deleteCategory,
+  getProductListByCategory,
+  getCategoryName,
+};

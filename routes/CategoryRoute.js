@@ -5,10 +5,16 @@ const {
   addCategory,
   editCategory,
   deleteCategory,
+  getProductListByCategory,
+  getCategoryName,
 } = require('../controllers/CategoryController');
 const { auth, adminAuth } = require('../middlewares/AuthMiddleware');
 
 router.get('/category-list', getCategoryList);
+
+router.get('/get-product-list/:id', getProductListByCategory);
+
+router.get('/get-name/:id', getCategoryName);
 
 router.post('/add-category', adminAuth, addCategory);
 
