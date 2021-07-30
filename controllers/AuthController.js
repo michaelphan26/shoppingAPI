@@ -2,6 +2,7 @@ const {
   validateLogin,
   validateRegister,
   validateAddUser,
+  validateChangePassword,
 } = require('../validators/UserValidator');
 const mongoose = require('mongoose');
 const { User } = require('../database/UserModel');
@@ -117,9 +118,58 @@ async function authLogin(req, res, next) {
   sendToken(res, 'OK', dbUser, role.name);
 }
 
+async function changePassword(req, res, next) {
+  const validateResult = validateChangePassword(req.body);
+  if (validateResult.error) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, validateResult.error.message));
+  }
+
+  const dbCheck = await User.findOne({ email: req.user.email });
+  if (!dbCheck) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Email is incorrect'));
+  }
+
+  const comparePassword = await bcrypt.compare(
+    req.body.oldPassword.trim(),
+    dbCheck.password
+  );
+
+  if (!comparePassword) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Old password is not correct'));
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const newPassword = await bcrypt.hash(req.body.newPassword.trim(), salt);
+
+  const result = await User.findOneAndUpdate(
+    { email: req.user.email },
+    {
+      $set: {
+        password: newPassword,
+      },
+    },
+    { new: true }
+  );
+
+  if (!result) {
+    return res
+      .status(500)
+      .json(errorResponse(res.statusCode, 'Cannot change password'));
+  }
+
+  return res.status(200).json(successResponse(res.statusCode, 'Ok'));
+}
+
 module.exports = {
   authLogin,
   authRegister,
   sendToken,
   saveUserWithInfo,
+  changePassword,
 };

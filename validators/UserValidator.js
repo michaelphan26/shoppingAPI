@@ -81,10 +81,33 @@ function validateEditUserAdmin(newDetail) {
   return schema.validate(newDetail);
 }
 
+function validateChangePassword(password) {
+  const schema = joi.object({
+    oldPassword: joi.string().min(8).max(30).required().trim(),
+    newPassword: joi
+      .string()
+      .min(8)
+      .max(30)
+      .required()
+      .trim()
+      .disallow(joi.ref('oldPassword')),
+    confirmPassword: joi
+      .string()
+      .min(8)
+      .max(30)
+      .required()
+      .trim()
+      .valid(joi.ref('newPassword')),
+  });
+
+  return schema.validate(password);
+}
+
 module.exports = {
   validateLogin,
   validateRegister,
   validateAddUser,
   validateEditUser,
   validateEditUserAdmin,
+  validateChangePassword,
 };
