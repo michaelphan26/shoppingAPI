@@ -384,20 +384,41 @@ async function changeReceiptType(req, res, next) {
     );
 }
 
-async function checkoutReceipt(req, res, next) {
-  const id = await checkID(req.params.id);
-  if (!id) {
-    return res
-      .status(404)
-      .json(errorResponse(res.statusCode, 'Invalid receipt id'));
+async function getCartID(req) {
+  let id_receiptType;
+  const check1 = await ReceiptType.findOne({ name: /^cart$/i });
+  if (!check1) {
+    const check2 = await ReceiptType.findOne({ name: /^gio hang$/i });
+    if (!check2) {
+      const check3 = await ReceiptType.findOne({ name: /^giỏ hàng$/i });
+      if (!check3) {
+        return null;
+      }
+      id_receiptType = check3._id;
+    }
+    id_receiptType = check2._id;
+  } else id_receiptType = check1._id;
+
+  const dbCheck = await Receipt.findOne({
+    id_receiptType: id_receiptType,
+    email: req.user.email,
+  });
+  if (!dbCheck) {
+    return null;
   }
 
-  const dbCheck = await Receipt.findOne({ _id: id, email: req.user.email });
-  if (!dbCheck) {
+  return dbCheck._id;
+}
+
+async function checkoutReceipt(req, res, next) {
+  const id = await getCartID(req);
+  if (id === null) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, "You don't have this receipt"));
+      .json(errorResponse(res.statusCode, 'You dont have any cart'));
   }
+
+  const receipt = await Receipt.findOne({ _id: id });
 
   let id_receiptType;
   const check1 = await ReceiptType.findOne({ name: /^checkout$/i });
@@ -418,17 +439,21 @@ async function checkoutReceipt(req, res, next) {
   const session = await mongoose.startSession();
   await session.startTransaction();
   try {
+    console.log(id);
     const receiptDetailList = await ReceiptDetail.find({ id_receipt: id });
 
     if (!receiptDetailList || receiptDetailList.length === 0)
       throw new Error('Receipt detail is empty');
 
+    console.log('CheckStock');
     const check = await checkStock(receipt.productList);
     if (!check) throw new Error('Product not available or not enough stock');
 
+    console.log('ReduceStock');
     const reduce = await reduceStock(receiptDetailList, session);
     if (!reduce) throw new Error('Cannot reduce stock');
 
+    console.log('UpdateReceipt');
     const result = await Receipt.findOneAndUpdate(
       { _id: id },
       {
@@ -498,14 +523,12 @@ async function getCartOnLogin(req, res, next) {
       .json(errorResponse(res.statusCode, 'No detail exist'));
   }
 
-  return res
-    .status(200)
-    .json(
-      successResponse(res.statusCode, 'Ok', {
-        productList: receiptDetail,
-        total: cart.total,
-      })
-    );
+  return res.status(200).json(
+    successResponse(res.statusCode, 'Ok', {
+      productList: receiptDetail,
+      total: cart.total,
+    })
+  );
 }
 
 module.exports = {

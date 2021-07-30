@@ -15,7 +15,7 @@ router.get('/receipt-detail/:id', getReceiptDetail);
 
 router.post('/add-receipt', auth, addReceipt);
 
-router.post('/receipt-checkout/:id', auth, checkoutReceipt);
+router.post('/receipt-checkout', auth, checkoutReceipt);
 
 router.get('/get-cart', auth, getCartOnLogin);
 
