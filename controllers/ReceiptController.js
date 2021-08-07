@@ -52,7 +52,6 @@ async function checkStock(productList) {
     const productInDB = await Product.findOne({
       _id: productList[index].id_product,
     });
-    console.log(productInDB);
     if (!productInDB || productInDB.stock < productList[index].quantity)
       return false;
   }
@@ -85,7 +84,7 @@ async function checkDuplicate(productList) {
 
 //User
 async function getReceiptList(req, res, next) {
-  const receiptList = await Receipt.find({ email: req.user.email });
+  const receiptList = await Receipt.find({ email: req.user.email }, { _v: 0 });
   if (!receiptList) {
     return res
       .status(400)
@@ -150,8 +149,6 @@ async function saveReceipt(receipt, req, res) {
       .json(errorResponse(res.statusCode, 'Receipt type not exist'));
   }
 
-  console.log('B');
-
   const session = await mongoose.startSession();
   await session.startTransaction();
   try {
@@ -189,7 +186,6 @@ async function saveReceipt(receipt, req, res) {
       // }
 
       const check = await checkStock(receipt.productList);
-      console.log(check);
       if (!check) throw new Error('Product not available or not enough stock');
 
       if (!detailList || detailList.length === 0) {
@@ -209,7 +205,6 @@ async function saveReceipt(receipt, req, res) {
     // if (!reduce) throw new Error('Cannot get stock to receipt');
 
     console.log('detail');
-    console.log(receipt.productList);
     for (const index in receipt.productList) {
       const receiptDetail = new ReceiptDetail({
         id_receipt: dbReceipt._id,
@@ -463,8 +458,6 @@ async function checkoutReceipt(req, res, next) {
       },
       { new: true }
     ).session(session);
-
-    console.log(result);
 
     if (!result) throw new Error('Cannot checkout');
     await session.commitTransaction();

@@ -9,9 +9,9 @@ const {
   getCartOnLogin,
 } = require('../controllers/ReceiptController');
 
-router.get('/receipt-list', getReceiptList);
+router.get('/receipt-list', auth, getReceiptList);
 
-router.get('/receipt-detail/:id', getReceiptDetail);
+router.get('/receipt-detail/:id', auth, getReceiptDetail);
 
 router.post('/add-receipt', auth, addReceipt);
 
