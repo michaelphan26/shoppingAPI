@@ -50,7 +50,6 @@ app.use(compression);
 //Routes
 //Auth
 const api = process.env.API_URL;
-console.log(api);
 app.use(`${api}/auth`, authRoutes);
 app.use(`${api}/product`, productRoutes);
 app.use(`${api}/receipt`, receiptRoutes);
@@ -65,8 +64,11 @@ app.use(`${api}/company`, companyRoutes);
 app.use(`${api}/io-product`, ioProductRoutes);
 app.use(`${api}/io-detail`, ioProductDetailRoutes);
 
+app.get('/', (res, req) => {
+  return res.status(200).send('OK');
+});
+
 //Connect DB
-console.log(process.env.DB_URL);
 mongoose
   .connect(process.env.DB_URL, {
     useNewUrlParser: true,
