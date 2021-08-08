@@ -23,7 +23,7 @@ const ioProductRoutes = require('./routes/IOProductRoute');
 const ioProductDetailRoutes = require('./routes/IOProductDetailRoute');
 
 //Check private key
-if (!config.get('jwtPrivateKey')) {
+if (!config.get('jwtPrivateKey') && !config.get('db_url')) {
   console.log('Private key is not defined');
   process.exit(1);
 }
@@ -66,6 +66,7 @@ app.use(`${api}/io-product`, ioProductRoutes);
 app.use(`${api}/io-detail`, ioProductDetailRoutes);
 
 //Connect DB
+console.log(process.env.DB_URL);
 mongoose
   .connect(process.env.DB_URL, {
     useNewUrlParser: true,

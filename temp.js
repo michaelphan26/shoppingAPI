@@ -57,3 +57,6 @@ function run() {
 }
 
 run();
+
+//DB_URL=mongodb://localhost/?replicaSet=rsName
+//TEMP=mongodb://localhost:27017/?replicaSet=rsName
