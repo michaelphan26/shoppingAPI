@@ -6,7 +6,6 @@ require('dotenv/config');
 const config = require('config');
 const mongoose = require('mongoose');
 const errorHandler = require('./middlewares/ErrorHandler');
-const compression = require('compression');
 require('express-async-errors');
 const authRoutes = require('./routes/AuthRoute');
 const productRoutes = require('./routes/ProductRoute');
@@ -43,9 +42,6 @@ app.use(express.json());
 
 //Error handler
 app.use(errorHandler);
-
-//Compression
-app.use(compression);
 
 //Routes
 //Auth
