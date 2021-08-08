@@ -9,7 +9,7 @@ const {
 } = require('../validators/UserValidator');
 const { successResponse, errorResponse } = require('../models/ResponseAPI');
 const { saveUserWithInfo } = require('./AuthController');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { Role } = require('../database/RoleModel');
 const { checkID } = require('./CommonController');
 
