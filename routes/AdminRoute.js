@@ -22,6 +22,7 @@ const {
   getReceiptDetailAdmin,
   changeReceiptType,
 } = require('../controllers/ReceiptController');
+const { getSummary } = require('../controllers/CommonController');
 
 router.get('/account-list', adminAuth, getAccountList);
 
@@ -46,5 +47,7 @@ router.get('/receipt-list', adminAuth, getReceiptListAdmin);
 router.get('/receipt-detail/:id', adminAuth, getReceiptDetailAdmin);
 
 router.put('/edit-receipt/:id', adminAuth, changeReceiptType);
+
+router.get('/summary', adminAuth, getSummary);
 
 module.exports = router;

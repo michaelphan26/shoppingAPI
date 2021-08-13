@@ -72,6 +72,17 @@ async function editCategory(req, res, next) {
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
+  reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const checkInDb = await Category.findOne({
+    name: reg,
+  });
+
+  if (checkInDb) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Category name existed'));
+  }
+
   const result = await Category.findOneAndUpdate(
     { _id: id },
     {

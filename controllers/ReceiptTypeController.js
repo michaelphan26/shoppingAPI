@@ -92,7 +92,7 @@ async function editReceiptType(req, res, next) {
 }
 
 async function deleteReceiptType(req, res, next) {
-  const id = checkID(req.params.id);
+  const id = await checkID(req.params.id);
   if (!id) {
     return res
       .status(404)
