@@ -294,6 +294,12 @@ async function getReceiptListAdmin(req, res, next) {
       .json(errorResponse(res.statusCode, 'Receipt list is empty'));
   }
 
+  for (const index in receiptList) {
+    const receiptObj = receiptList[index].toObject();
+    receiptObj.date = new Date(receiptObj.date).toLocaleString('en-GB');
+    receiptList[index] = receiptObj;
+  }
+
   return res
     .status(200)
     .json(successResponse(res.statusCode, 'OK', receiptList));

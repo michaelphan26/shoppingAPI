@@ -5,10 +5,13 @@ const {
   addRole,
   editRole,
   deleteRole,
+  getRoleInfo,
 } = require('../controllers/RoleController');
 const { adminAuth } = require('../middlewares/AuthMiddleware');
 
-router.get('/role-list', getRoleList);
+router.get('/role-info/:id', adminAuth, getRoleInfo);
+
+router.get('/get-list', getRoleList);
 
 router.post('/add-role', adminAuth, addRole);
 

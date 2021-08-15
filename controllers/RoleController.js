@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const { successResponse, errorResponse } = require('../models/ResponseAPI');
 const { validateRole } = require('../validators/RoleValidator');
 const { User } = require('../database/UserModel');
+const { checkID } = require('./CommonController');
 
 async function getRoleList(req, res, next) {
   const roleList = await Role.find({});
@@ -50,7 +51,7 @@ async function addRole(req, res, next) {
 }
 
 async function editRole(req, res, next) {
-  const id = checkID(req.params.id);
+  const id = await checkID(req.params.id);
   if (!id) {
     return res
       .status(404)
@@ -86,7 +87,7 @@ async function editRole(req, res, next) {
 }
 
 async function deleteRole(req, res, next) {
-  const id = checkID(req.params.id);
+  const id = await checkID(req.params.id);
   if (!id) {
     return res
       .status(404)
@@ -110,4 +111,22 @@ async function deleteRole(req, res, next) {
   return res.status(200).json(successResponse(res.statusCode, 'Ok'));
 }
 
-module.exports = { getRoleList, addRole, editRole, deleteRole };
+async function getRoleInfo(req, res, next) {
+  const id = await checkID(req.params.id);
+  if (!id) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid role id'));
+  }
+
+  const dbCheck = await Role.findOne({ _id: id });
+  if (!dbCheck) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Role not existed'));
+  }
+
+  return res.status(200).json(successResponse(res.statusCode, 'Ok', dbCheck));
+}
+
+module.exports = { getRoleList, addRole, editRole, deleteRole, getRoleInfo };

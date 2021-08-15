@@ -178,7 +178,7 @@ async function adminAddUser(req, res, next) {
   const salt = await bcrypt.genSalt(10);
   req.body.password = await bcrypt.hash(req.body.password.trim(), salt);
 
-  const idRoleCheck = Role.findOne({ _id: req.body.id_role });
+  const idRoleCheck = await Role.findOne({ _id: req.body.id_role });
   if (!idRoleCheck) {
     return res
       .status(400)
