@@ -95,32 +95,49 @@ async function getAccountList(req, res, next) {
 }
 
 async function editUserDetailAdmin(req, res, next) {
-  const id = checkID(req.params.id);
+  const id = await checkID(req.params.id);
   if (!id) {
     return res
       .status(404)
       .json(errorResponse(res.statusCode, 'Invalid user id'));
   }
 
+  console.log('Hey');
   const validateResult = validateEditUserAdmin(req.body);
   if (validateResult.error) {
+    console.log(validateResult.error.message);
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
-  const idRoleCheck = Role.findOne({ _id: req.body.id_role });
+  console.log('Ho');
+  const idRoleCheck = await Role.findOne({ _id: req.body.id_role });
   if (!idRoleCheck) {
     return res
       .status(400)
       .json(errorResponse(res.statusCode, 'Role id not exist'));
   }
 
+  console.log('No');
+
   const session = await mongoose.startSession();
   await session.startTransaction();
   try {
+    console.log('Lo');
+    const saveUser = await User.findOneAndUpdate(
+      { _id: id },
+      {
+        $set: {
+          id_role: req.body.id_role,
+        },
+      },
+      { new: true }
+    ).session(session);
+    if (!saveUser) throw new Error('User not exist');
+
     const saveInfo = await UserInfo.findOneAndUpdate(
-      { _id: id_userInfo },
+      { _id: saveUser.id_userInfo },
       {
         $set: {
           name: req.body.name.trim(),
@@ -132,16 +149,7 @@ async function editUserDetailAdmin(req, res, next) {
     ).session(session);
     if (!saveInfo) throw new Error('User info not exist');
 
-    const saveUser = await User.findOneAndUpdate(
-      { id_userInfo: id_userInfo },
-      {
-        $set: {
-          id_role: req.body.id_role,
-        },
-      },
-      { new: true }
-    ).session(session);
-    if (!saveUser) throw new Error('User not exist');
+    console.log('Ok');
     await session.commitTransaction();
     await session.endSession();
   } catch (err) {
@@ -153,11 +161,10 @@ async function editUserDetailAdmin(req, res, next) {
       .json(errorResponse(res.statusCode, 'Cannot edit user detail'));
   }
 
+  console.log('Noice');
   return res
     .status(200)
-    .json(
-      successResponse(res.statusCode, 'Edit profile successful', newDetail)
-    );
+    .json(successResponse(res.statusCode, 'Edit profile successful'));
 }
 
 async function adminAddUser(req, res, next) {

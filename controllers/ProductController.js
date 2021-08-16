@@ -33,7 +33,10 @@ async function getProductDetail(req, res, next) {
       .json(errorResponse(res.statusCode, 'Invalid product id'));
   }
 
-  const product = await Product.findOne({ _id: id, status: true });
+  const product = await Product.findOne(
+    { _id: id, status: true },
+    { status: 0 }
+  );
   if (!product) {
     return res
       .status(404)
@@ -107,15 +110,14 @@ async function addProduct(req, res, next) {
     brand: req.body.brand.trim(),
     price: req.body.price.trim(),
     description: req.body.description.trim(),
-    stock: 0,
     discount: req.body.discount.trim(),
-    status: req.body.status,
     image: req.body.image.trim(),
     id_category: req.body.id_category.trim(),
+    status: true,
   });
 
   reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
-  const nameCheck = await Product.findOne({ name: reg });
+  const nameCheck = await Product.findOne({ name: reg, status: false });
   if (nameCheck) {
     return res
       .status(400)
@@ -150,13 +152,13 @@ async function deleteProduct(req, res, next) {
       .json(errorResponse(res.statusCode, 'Invalid product id'));
   }
 
-  const ioCheck = await IOProductDetail.findOne({ id_product: id });
-  const receiptCheck = await ReceiptDetail.findOne({ id_product: id });
-  if (ioCheck || receiptCheck || (ioCheck && receiptCheck)) {
-    return res
-      .status(400)
-      .json(errorResponse(res.statusCode, 'Cannot delete this product'));
-  }
+  // const ioCheck = await IOProductDetail.findOne({ id_product: id });
+  // const receiptCheck = await ReceiptDetail.findOne({ id_product: id });
+  // if (ioCheck || receiptCheck || (ioCheck && receiptCheck)) {
+  //   return res
+  //     .status(400)
+  //     .json(errorResponse(res.statusCode, 'Cannot delete this product'));
+  // }
 
   const result = await Product.findOneAndUpdate(
     { _id: id },
@@ -217,7 +219,6 @@ async function editProduct(req, res, next) {
         price: req.body.price,
         description: req.body.description.trim(),
         discount: req.body.discount,
-        status: req.body.status,
         image: req.body.image.trim(),
         id_category: req.body.id_category.trim(),
       },

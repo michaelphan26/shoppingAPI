@@ -8,7 +8,6 @@ function validateProduct(product) {
     price: joi.number().min(1000).max(1000000000).required(),
     description: joi.string().trim().min(5).max(200).required(),
     discount: joi.number().min(0).max(100).required(),
-    status: joi.boolean().required(),
     id_category: joi.objectId().required(),
     image: joi.string().base64().required(),
   });
