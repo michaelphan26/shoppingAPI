@@ -85,6 +85,7 @@ async function getProductDetailAdmin(req, res, next) {
 async function addProduct(req, res, next) {
   const validateResult = validateProduct(req.body);
   if (validateResult.error) {
+    console.log(validateResult.error.message);
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
@@ -95,6 +96,7 @@ async function addProduct(req, res, next) {
     allowEmpty: false,
   });
   if (!checkImage) {
+    console.log('Lo');
     return res
       .status(400)
       .json(
@@ -105,6 +107,17 @@ async function addProduct(req, res, next) {
       );
   }
 
+  console.log('Hi');
+
+  reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const nameCheck = await Product.findOne({ name: reg, status: false });
+  if (nameCheck) {
+    console.log(nameCheck);
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Product name existed'));
+  }
+
   dbProduct = new Product({
     name: req.body.name.trim(),
     brand: req.body.brand.trim(),
@@ -113,25 +126,13 @@ async function addProduct(req, res, next) {
     discount: req.body.discount.trim(),
     image: req.body.image.trim(),
     id_category: req.body.id_category.trim(),
-    status: true,
+    stock: 0,
+    status: req.body.status,
   });
 
-  reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
-  const nameCheck = await Product.findOne({ name: reg, status: false });
-  if (nameCheck) {
-    return res
-      .status(400)
-      .json(errorResponse(res.statusCode, 'Product name existed'));
-  }
+  console.log('R');
 
-  let result;
-  try {
-    result = await dbProduct.save();
-  } catch (err) {
-    return res
-      .status(400)
-      .json(errorResponse(res.statusCode, 'Product name existed'));
-  }
+  const result = await dbProduct.save(dbProduct);
 
   if (!result) {
     return res
@@ -221,6 +222,7 @@ async function editProduct(req, res, next) {
         discount: req.body.discount,
         image: req.body.image.trim(),
         id_category: req.body.id_category.trim(),
+        status: req.body.status,
       },
     },
     { new: true }

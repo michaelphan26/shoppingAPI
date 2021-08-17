@@ -38,13 +38,34 @@ async function changeStock(io, type, session) {
 
       const result = await productInDB.save({ session });
       if (!result) throw new Error('Cannot increase stock');
+    }
 
+    let tempList = [];
+    for (const index in io.productList) {
+      const tempIndex = tempList.findIndex(
+        (item) =>
+          item.id_product === io.productList[index].id_product &&
+          item.id_company === io.productList[index].company &&
+          item.quantity === io.productList[index].quantity &&
+          item.price === io.productList[index].price
+      );
+
+      if (tempIndex !== -1) {
+        tempList.push(io.productList[index]);
+      } else {
+        tempList[tempIndex].quantity =
+          parseInt(tempList[tempIndex].quantity) +
+          parseInt(io.productList[index].quantity);
+      }
+    }
+
+    for (const index in tempList) {
       const ioProductDetail = await new IOProductDetail({
         id_IOProduct: ioProduct._id,
-        id_product: io.productList[index].id_product,
-        quantity: io.productList[index].quantity,
-        price: io.productList[index].price,
-        id_company: io.productList[index].id_company,
+        id_product: tempList[index].id_product,
+        quantity: tempList[index].quantity,
+        price: tempList[index].price,
+        id_company: tempList[index].id_company,
       });
 
       const save = ioProductDetail.save({ session });

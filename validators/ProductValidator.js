@@ -10,6 +10,7 @@ function validateProduct(product) {
     discount: joi.number().min(0).max(100).required(),
     id_category: joi.objectId().required(),
     image: joi.string().base64().required(),
+    status: joi.boolean().required(),
   });
 
   return schema.validate(product);
