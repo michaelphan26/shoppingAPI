@@ -23,6 +23,27 @@ async function getCompanyList(req, res, next) {
     .json(successResponse(res.statusCode, 'Ok', companyList));
 }
 
+async function getCompanyDetail(req, res, next) {
+  const id = await checkID(req.params.id);
+  if (!id) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid company id'));
+  }
+
+  const companyDetail = await Company.findOne({ _id: id }, { _v: 0 });
+
+  if (!companyDetail) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Cannot get company detail'));
+  }
+
+  return res
+    .status(200)
+    .json(successResponse(res.statusCode, 'Ok', companyDetail));
+}
+
 async function addCompany(req, res, next) {
   const validateResult = validateCompany(req.body);
   if (validateResult.error) {
@@ -131,4 +152,10 @@ async function deleteCompany(req, res, next) {
   return res.status(200).json(successResponse(res.statusCode, 'Ok'));
 }
 
-module.exports = { getCompanyList, addCompany, editCompany, deleteCompany };
+module.exports = {
+  getCompanyList,
+  addCompany,
+  editCompany,
+  deleteCompany,
+  getCompanyDetail,
+};

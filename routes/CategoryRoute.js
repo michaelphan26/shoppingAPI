@@ -16,10 +16,4 @@ router.get('/get-product-list/:id', getProductListByCategory);
 
 router.get('/get-name/:id', getCategoryName);
 
-router.post('/add-category', adminAuth, addCategory);
-
-router.delete('/delete-category/:id', adminAuth, deleteCategory);
-
-router.put('/edit-category/:id', adminAuth, editCategory);
-
 module.exports = router;

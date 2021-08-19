@@ -13,10 +13,4 @@ router.get('/role-info/:id', adminAuth, getRoleInfo);
 
 router.get('/get-list', getRoleList);
 
-router.post('/add-role', adminAuth, addRole);
-
-router.delete('/delete-role/:id', adminAuth, deleteRole);
-
-router.put('/edit-role/:id', adminAuth, editRole);
-
 module.exports = router;

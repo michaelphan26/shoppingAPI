@@ -16,7 +16,6 @@ async function changeStock(io, type, session) {
 
     const saveIOProduct = await ioProduct.save({ session });
     if (!saveIOProduct) throw new Error('Cannot save IO product');
-
     for (const index in io.productList) {
       const productInDB = await Product.findOne({
         _id: io.productList[index].id_product,
@@ -50,7 +49,7 @@ async function changeStock(io, type, session) {
           item.price === io.productList[index].price
       );
 
-      if (tempIndex !== -1) {
+      if (tempIndex === -1) {
         tempList.push(io.productList[index]);
       } else {
         tempList[tempIndex].quantity =
@@ -58,7 +57,6 @@ async function changeStock(io, type, session) {
           parseInt(io.productList[index].quantity);
       }
     }
-
     for (const index in tempList) {
       const ioProductDetail = await new IOProductDetail({
         id_IOProduct: ioProduct._id,
@@ -68,12 +66,11 @@ async function changeStock(io, type, session) {
         id_company: tempList[index].id_company,
       });
 
-      const save = ioProductDetail.save({ session });
+      const save = await ioProductDetail.save({ session });
       if (!save) throw new Error('Cannot save io detail');
     }
     return true;
   } catch (err) {
-    console.log(err);
     return false;
   }
 }
@@ -125,7 +122,7 @@ async function getIOList(req, res, next) {
   for (const index in ioList) {
     const ioObj = ioList[index].toObject();
     ioObj.date = new Date(ioObj.date).toLocaleString('en-GB');
-    ioList[index] = ioObject;
+    ioList[index] = ioObj;
   }
 
   return res.status(200).json(successResponse(res.statusCode, 'Ok', ioList));
@@ -135,11 +132,13 @@ async function addIO(req, res, next) {
   const validateResult = validateIOProduct(req.body);
 
   if (validateResult.error) {
+    console.log(validateResult.error.message);
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
+  console.log('Type check');
   const ioTypeCheck = await IOType.findOne({ _id: req.body.id_ioType });
   if (!ioTypeCheck) {
     return res
@@ -152,6 +151,7 @@ async function addIO(req, res, next) {
     name: ioTypeCheck.toObject().name,
     productList: req.body.productList,
   };
+  console.log('Saving');
 
   return await saveIO(io, res);
 }

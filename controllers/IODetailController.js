@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
 const { IOProductDetail } = require('../database/IOProductDetailModel');
 const { errorResponse, successResponse } = require('../models/ResponseAPI');
+const { checkID } = require('./CommonController');
 
 async function getIODetail(req, res, next) {
-  const id = checkID(req.params.id);
+  const id = await checkID(req.params.id);
   if (!id) {
     return res.status(404).json(errorResponse(res.statusCode, 'Invalid io id'));
   }
