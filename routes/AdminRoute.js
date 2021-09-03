@@ -15,6 +15,8 @@ const {
   getUserDetail,
   editUserDetailAdmin,
   adminAddUser,
+  getUser,
+  getUserDetailByID,
 } = require('../controllers/UserController');
 const {
   getReceiptListAdmin,
@@ -38,11 +40,13 @@ const {
   addIOType,
   editIOType,
   deleteIOType,
+  getIOTypeByID,
 } = require('../controllers/IOTypeController');
 const {
   addReceiptType,
   editReceiptType,
   deleteReceiptType,
+  getReceiptTypeByID,
 } = require('../controllers/ReceiptTypeController');
 const {
   addRole,
@@ -52,7 +56,7 @@ const {
 
 router.get('/account-list', adminAuth, getAccountList);
 
-router.get('/account-detail/:id', adminAuth, getUserDetail);
+router.get('/account-detail/:id', adminAuth, getUserDetailByID);
 
 router.post('/add-account', adminAuth, adminAddUser);
 
@@ -94,11 +98,15 @@ router.put('/edit-io-type/:id', adminAuth, editIOType);
 
 router.delete('/delete-io-type/:id', adminAuth, deleteIOType);
 
+router.get('/io-type/:id', adminAuth, getIOTypeByID);
+
 router.post('/add-receipt-type', adminAuth, addReceiptType);
 
 router.put('/edit-receipt-type/:id', adminAuth, editReceiptType);
 
 router.delete('/delete-receipt-type/:id', adminAuth, deleteReceiptType);
+
+router.get('/receipt-type/:id', adminAuth, getReceiptTypeByID);
 
 router.post('/add-role', adminAuth, addRole);
 
@@ -107,5 +115,7 @@ router.delete('/delete-role/:id', adminAuth, deleteRole);
 router.put('/edit-role/:id', adminAuth, editRole);
 
 router.get('/summary', adminAuth, getSummary);
+
+router.get('/account/:id', adminAuth, getUser);
 
 module.exports = router;

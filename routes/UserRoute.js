@@ -3,8 +3,9 @@ const router = express.Router();
 const {
   getUserDetail,
   editUserDetail,
+  getUser,
 } = require('../controllers/UserController');
-const { auth } = require('../middlewares/AuthMiddleware');
+const { auth, adminAuth } = require('../middlewares/AuthMiddleware');
 
 router.get('/me', auth, getUserDetail);
 

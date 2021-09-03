@@ -29,13 +29,39 @@ async function getUserDetail(req, res, next) {
 
   return res
     .status(200)
-    .json(
-      successResponse(
-        res.statusCode,
-        'OK',
-        _.omit(responseUser, ['_id', '__v'])
-      )
-    );
+    .json(successResponse(res.statusCode, 'OK', _.omit(responseUser, ['__v'])));
+}
+
+async function getUserDetailByID(req, res, next) {
+  const id = await checkID(req.params.id);
+  if (!id) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid user id'));
+  }
+
+  const user = await User.findOne({ _id: id });
+  if (!user) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'User not existed'));
+  }
+
+  const userInfo = await UserInfo.findOne({ _id: user.id_userInfo });
+  if (!userInfo) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Cannot get user detail'));
+  }
+
+  responseUser = userInfo.toObject();
+  responseUser.joinDate = new Date(responseUser.joinDate).toLocaleString(
+    'en-GB'
+  );
+
+  return res
+    .status(200)
+    .json(successResponse(res.statusCode, 'OK', _.omit(responseUser, ['__v'])));
 }
 
 async function editUserDetail(req, res, next) {
@@ -77,17 +103,36 @@ async function editUserDetail(req, res, next) {
       );
   }
 
-  res
+  return res
     .status(200)
     .json(successResponse(res.statusCode, 'Edit profile successful', result));
 }
 
 //Admin
-async function getAccountList(req, res, next) {
-  const userList = await User.find({}, { password: 0 });
-  if (!userList) {
+
+async function getUser(req, res, next) {
+  const id = await checkID(req.params.id);
+  if (!id) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid user id'));
+  }
+
+  const checkDB = await User.findOne({ _id: id });
+  if (!checkDB) {
     return res
       .status(400)
+      .json(errorResponse(res.statusCode, 'User not existed'));
+  }
+
+  return res.status(200).json(successResponse(res.statusCode, 'Ok', checkDB));
+}
+
+async function getAccountList(req, res, next) {
+  const userList = await User.find({}, { password: 0 }).sort('desc');
+  if (!userList) {
+    return res
+      .status(404)
       .json(errorResponse(res.statusCode, 'User list is empty'));
   }
 
@@ -102,16 +147,13 @@ async function editUserDetailAdmin(req, res, next) {
       .json(errorResponse(res.statusCode, 'Invalid user id'));
   }
 
-  console.log('Hey');
   const validateResult = validateEditUserAdmin(req.body);
   if (validateResult.error) {
-    console.log(validateResult.error.message);
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
-  console.log('Ho');
   const idRoleCheck = await Role.findOne({ _id: req.body.id_role });
   if (!idRoleCheck) {
     return res
@@ -119,12 +161,9 @@ async function editUserDetailAdmin(req, res, next) {
       .json(errorResponse(res.statusCode, 'Role id not exist'));
   }
 
-  console.log('No');
-
   const session = await mongoose.startSession();
   await session.startTransaction();
   try {
-    console.log('Lo');
     const saveUser = await User.findOneAndUpdate(
       { _id: id },
       {
@@ -149,11 +188,9 @@ async function editUserDetailAdmin(req, res, next) {
     ).session(session);
     if (!saveInfo) throw new Error('User info not exist');
 
-    console.log('Ok');
     await session.commitTransaction();
     await session.endSession();
   } catch (err) {
-    console.log(err);
     await session.abortTransaction();
     await session.endSession();
     return res
@@ -161,7 +198,6 @@ async function editUserDetailAdmin(req, res, next) {
       .json(errorResponse(res.statusCode, 'Cannot edit user detail'));
   }
 
-  console.log('Noice');
   return res
     .status(200)
     .json(successResponse(res.statusCode, 'Edit profile successful'));
@@ -184,6 +220,13 @@ async function adminAddUser(req, res, next) {
 
   const salt = await bcrypt.genSalt(10);
   req.body.password = await bcrypt.hash(req.body.password.trim(), salt);
+
+  const id_role_check = await checkID(req.body.id_role);
+  if (!id_role_check) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Invalid role id'));
+  }
 
   const idRoleCheck = await Role.findOne({ _id: req.body.id_role });
   if (!idRoleCheck) {
@@ -211,10 +254,12 @@ async function adminAddUser(req, res, next) {
   if (!result) {
     return res
       .status(500)
-      .json(errorResponse(res.statusCode, 'Something is wrong'));
+      .json(errorResponse(res.statusCode, 'Cannot add user'));
   }
 
-  res.status(200).json(successResponse(res.statusCode, 'Add user successful'));
+  return res
+    .status(200)
+    .json(successResponse(res.statusCode, 'Add user successful'));
 }
 
 module.exports = {
@@ -223,4 +268,6 @@ module.exports = {
   editUserDetail,
   editUserDetailAdmin,
   adminAddUser,
+  getUser,
+  getUserDetailByID,
 };

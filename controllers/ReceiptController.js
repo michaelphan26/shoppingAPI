@@ -67,14 +67,14 @@ async function checkDuplicate(productList) {
     if (!tempProduct) temp.push(product);
     else {
       const indTemp = temp.indexOf(tempProduct);
-      const tempProd = temp[indTemp];
-      if (
-        tempProduct.price !== tempProd.price ||
-        tempProduct.discount !== tempProd.discount ||
-        (tempProduct.price !== tempProd.price &&
-          tempProduct.discount !== tempProd.discount)
-      )
-        return null;
+      // const tempProd = temp[indTemp];
+      // if (
+      //   tempProduct.price !== tempProd.price ||
+      //   tempProduct.discount !== tempProd.discount ||
+      //   (tempProduct.price !== tempProd.price &&
+      //     tempProduct.discount !== tempProd.discount)
+      // )
+      //   return null;
       temp[indTemp].quantity =
         parseInt(temp[indTemp].quantity) + parseInt(product.quantity);
     }
@@ -84,14 +84,44 @@ async function checkDuplicate(productList) {
 
 //User
 async function getReceiptList(req, res, next) {
-  const receiptList = await Receipt.find({ email: req.user.email }, { _v: 0 });
+  const id = await checkID(id_receiptType);
+  if (!id) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid receipt id'));
+  }
+
+  let id_receiptType;
+  const check1 = await ReceiptType.findOne({ name: /^checkout$/i });
+  if (!check1) {
+    const check2 = await ReceiptType.findOne({ name: /^xac nhan$/i });
+    if (!check2) {
+      const check3 = await ReceiptType.findOne({ name: /^xác nhận$/i });
+      if (!check3) {
+        return res
+          .status(400)
+          .json(errorResponse(res.statusCode, 'Cannot get receipt type'));
+      } else id_receiptType = check3._id;
+    } else id_receiptType = check2._id;
+  } else id_receiptType = check1._id;
+
+  const user_id = await checkID(req.user._id);
+  if (!user_id) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid user id'));
+  }
+
+  const receiptList = await Receipt.find({ id_user: user_id }, { _v: 0 }).sort(
+    'desc'
+  );
   if (!receiptList) {
     return res
       .status(400)
       .json(errorResponse(res.statusCode, 'Cannot get receipt list'));
   } else if (receiptList.length === 0) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Receipt list is currently empty'));
   }
 
@@ -117,7 +147,7 @@ async function getReceiptDetail(req, res, next) {
   //TH check ma receipt nguoi khac
   const receiptAuthCheck = await Receipt.findOne({
     _id: id,
-    email: req.user.email,
+    id_user: req.user._id,
   });
   if (!receiptAuthCheck) {
     return res
@@ -161,24 +191,25 @@ async function saveReceipt(receipt, req, res) {
     let add = false;
     let dbReceipt;
     const cartCheck = await Receipt.findOne({
-      email: req.user.email,
+      id_user: req.user._id,
       id_receiptType: receipt.id_receiptType,
     });
 
     if (!cartCheck) {
+      console.log('New');
       dbReceipt = new Receipt({
         date: date,
         total: receipt.total,
-        email: req.user.email,
+        id_user: req.user._id,
         id_receiptType: receipt.id_receiptType,
       });
       add = true;
     } else {
-      dbReceipt = cartCheck;
+      console.log('Modify');
       const detailList = await ReceiptDetail.find({
-        id_receipt: dbReceipt._id,
+        id_receipt: cartCheck._id,
       });
-      console.log('Check detail list');
+      // console.log('Check detail list');
       // if (detailList) {
       //   const increase = await increaseStock(detailList);
       //   console.log(increase);
@@ -193,7 +224,7 @@ async function saveReceipt(receipt, req, res) {
       }
 
       const deleteOldDetail = await ReceiptDetail.deleteMany({
-        id_receipt: dbReceipt._id,
+        id_receipt: cartCheck._id,
       }).session(session);
       if (!deleteOldDetail) {
         throw new Error('Cannot edit receipt detail');
@@ -207,7 +238,7 @@ async function saveReceipt(receipt, req, res) {
     console.log('detail');
     for (const index in receipt.productList) {
       const receiptDetail = new ReceiptDetail({
-        id_receipt: dbReceipt._id,
+        id_receipt: cartCheck._id,
         id_product: receipt.productList[index].id_product,
         price: receipt.productList[index].price,
         discount: receipt.productList[index].discount,
@@ -226,7 +257,7 @@ async function saveReceipt(receipt, req, res) {
     } else {
       console.log('edit');
       saveReceipt = await Receipt.findOneAndUpdate(
-        { _id: dbReceipt._id },
+        { _id: cartCheck._id },
         {
           $set: {
             total: req.body.total,
@@ -254,6 +285,7 @@ async function saveReceipt(receipt, req, res) {
 async function addReceipt(req, res, next) {
   const validateResult = validateReceipt(req.body);
   if (validateResult.error) {
+    console.log(validateResult.error.message);
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
@@ -269,10 +301,8 @@ async function addReceipt(req, res, next) {
         return res
           .status(400)
           .json(errorResponse(res.statusCode, 'Cannot get receipt type'));
-      }
-      id_receiptType = check3._id;
-    }
-    id_receiptType = check2._id;
+      } else id_receiptType = check3._id;
+    } else id_receiptType = check2._id;
   } else id_receiptType = check1._id;
 
   const receipt = {
@@ -287,7 +317,7 @@ async function addReceipt(req, res, next) {
 
 //Admin
 async function getReceiptListAdmin(req, res, next) {
-  const receiptList = await Receipt.find({});
+  const receiptList = await Receipt.find({}).sort('desc');
   if (!receiptList) {
     return res
       .status(400)
@@ -316,11 +346,11 @@ async function getReceiptDetailAdmin(req, res, next) {
   const receiptDetail = await ReceiptDetail.find({ id_receipt: id });
   if (!receiptDetail) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Cannot get receipt detail'));
   } else if (receiptDetail.length === 0) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Receipt detail is empty'));
   }
 
@@ -337,17 +367,17 @@ async function changeReceiptType(req, res, next) {
       .json(errorResponse(res.statusCode, 'Invalid receipt id'));
   }
 
-  const idCheck = Receipt.findOne({ _id: id });
+  const idCheck = await Receipt.findOne({ _id: id });
   if (!idCheck) {
     return res
-      .status(404)
-      .json(errorResponse(res.statusCode, 'Invalid receipt id'));
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Receipt not existed'));
   }
 
   const idType = await checkID(req.body.id_receiptType);
   if (!idType) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Receipt id not exist'));
   }
 
@@ -370,11 +400,11 @@ async function changeReceiptType(req, res, next) {
 
   if (!result) {
     return res
-      .status(400)
+      .status(500)
       .json(errorResponse(res.statusCode, 'Cannot change receipt status'));
   }
 
-  res
+  return res
     .status(200)
     .json(
       successResponse(
@@ -394,15 +424,13 @@ async function getCartID(req) {
       const check3 = await ReceiptType.findOne({ name: /^giỏ hàng$/i });
       if (!check3) {
         return null;
-      }
-      id_receiptType = check3._id;
-    }
-    id_receiptType = check2._id;
+      } else id_receiptType = check3._id;
+    } else id_receiptType = check2._id;
   } else id_receiptType = check1._id;
 
   const dbCheck = await Receipt.findOne({
     id_receiptType: id_receiptType,
-    email: req.user.email,
+    id_user: req.user._id,
   });
   if (!dbCheck) {
     return null;
@@ -431,10 +459,8 @@ async function checkoutReceipt(req, res, next) {
         return res
           .status(400)
           .json(errorResponse(res.statusCode, 'Cannot get receipt type'));
-      }
-      id_receiptType = check3._id;
-    }
-    id_receiptType = check2._id;
+      } else id_receiptType = check3._id;
+    } else id_receiptType = check2._id;
   } else id_receiptType = check1._id;
 
   const session = await mongoose.startSession();
@@ -477,7 +503,7 @@ async function checkoutReceipt(req, res, next) {
 }
 
 async function getReceiptListNoResponse(req) {
-  const receiptList = await Receipt.find({ email: req.user.email });
+  const receiptList = await Receipt.find({ id_user: req.user._id });
   if (!receiptList) {
     return null;
   } else if (receiptList.length === 0) {
@@ -509,7 +535,7 @@ async function getCartOnLogin(req, res, next) {
     }
   }
   if (!cart) {
-    return res.status(404).json(errorResponse(res.statusCode, 'No cart exist'));
+    return res.status(400).json(errorResponse(res.statusCode, 'No cart exist'));
   }
 
   const receiptDetail = await ReceiptDetail.find(
@@ -518,7 +544,7 @@ async function getCartOnLogin(req, res, next) {
   );
   if (!receiptDetail) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'No detail exist'));
   }
 

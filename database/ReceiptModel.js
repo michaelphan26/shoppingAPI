@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const receiptSchema = mongoose.Schema({
-  email: {
+  id_user: {
     type: String,
     required: true,
     minLength: 5,

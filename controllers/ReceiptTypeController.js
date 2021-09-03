@@ -10,11 +10,11 @@ async function getReceiptTypeList(req, res, next) {
 
   if (!typeList) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Cannot get receipt type list'));
   } else if (typeList.length === 0) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Receipt type list is empty'));
   }
 
@@ -30,7 +30,7 @@ async function addReceiptType(req, res, next) {
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
-  reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
   const nameCheck = await ReceiptType.findOne({ name: reg });
   if (nameCheck) {
     return res
@@ -45,7 +45,7 @@ async function addReceiptType(req, res, next) {
   const result = await dbType.save();
   if (!result) {
     return res
-      .status(400)
+      .status(500)
       .json(errorResponse(res.statusCode, 'Cannot save receipt type'));
   }
 
@@ -65,6 +65,20 @@ async function editReceiptType(req, res, next) {
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
+  }
+
+  const reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const checkInDb = await ReceiptType.find({
+    name: reg,
+  });
+  if (checkInDb) {
+    for (index in checkInDb) {
+      if (checkInDb[index]._id !== id) {
+        return res
+          .status(400)
+          .json(errorResponse(res.statusCode, 'receipt type name existed'));
+      }
+    }
   }
 
   const result = await ReceiptType.findOneAndUpdate(
@@ -116,9 +130,28 @@ async function deleteReceiptType(req, res, next) {
   return res.status(200).json(successResponse(res.statusCode, 'Ok'));
 }
 
+async function getReceiptTypeByID(req, res, next) {
+  const id = await checkID(req.params.id);
+  if (!id) {
+    return res
+      .status(404)
+      .json(errorResponse(res.statusCode, 'Invalid receipt type id'));
+  }
+
+  const checkDB = await ReceiptType.findOne({ _id: id });
+  if (!checkDB) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Receipt type not existed'));
+  }
+
+  return res.status(200).json(successResponse(res.statusCode, 'Ok', checkDB));
+}
+
 module.exports = {
   getReceiptTypeList,
   addReceiptType,
   editReceiptType,
   deleteReceiptType,
+  getReceiptTypeByID,
 };

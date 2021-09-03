@@ -31,6 +31,7 @@ async function saveUserWithInfo(dbUser, dbUserInfo) {
 
 async function sendToken(res, msg, user, roleName) {
   const tokenDetail = {
+    _id: user._id,
     email: user.email,
     id_userInfo: user.id_userInfo,
     id_role: user.id_role,
@@ -90,7 +91,6 @@ async function authRegister(req, res, next) {
 }
 
 async function authLogin(req, res, next) {
-  console.log(req.body);
   const validateResult = validateLogin(req.body);
   if (validateResult.error) {
     return res
@@ -126,11 +126,11 @@ async function changePassword(req, res, next) {
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
-  const dbCheck = await User.findOne({ email: req.user.email });
+  const dbCheck = await User.findOne({ _id: req.user._id });
   if (!dbCheck) {
     return res
       .status(400)
-      .json(errorResponse(res.statusCode, 'Email is incorrect'));
+      .json(errorResponse(res.statusCode, 'User not existed'));
   }
 
   const comparePassword = await bcrypt.compare(
@@ -148,7 +148,7 @@ async function changePassword(req, res, next) {
   const newPassword = await bcrypt.hash(req.body.newPassword.trim(), salt);
 
   const result = await User.findOneAndUpdate(
-    { email: req.user.email },
+    { _id: req.user._id },
     {
       $set: {
         password: newPassword,

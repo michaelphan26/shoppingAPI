@@ -10,11 +10,11 @@ async function getCategoryList(req, res, next) {
 
   if (!categoryList) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Cannot get category list'));
   } else if (categoryList.length === 0) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Category list currently empty'));
   }
 
@@ -28,18 +28,18 @@ async function addCategory(req, res, next) {
 
   if (validateName.error) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, validateName.error.message));
   }
 
-  reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
   const checkInDb = await Category.findOne({
     name: reg,
   });
 
   if (checkInDb) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Category name existed'));
   }
 
@@ -68,19 +68,22 @@ async function editCategory(req, res, next) {
   const validateResult = validateCategory(req.body);
   if (validateResult.error) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
-  reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
-  const checkInDb = await Category.findOne({
+  const reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const checkInDb = await Category.find({
     name: reg,
   });
-
   if (checkInDb) {
-    return res
-      .status(404)
-      .json(errorResponse(res.statusCode, 'Category name existed'));
+    for (index in checkInDb) {
+      if (checkInDb[index]._id !== id) {
+        return res
+          .status(400)
+          .json(errorResponse(res.statusCode, 'Category name existed'));
+      }
+    }
   }
 
   const result = await Category.findOneAndUpdate(
@@ -95,7 +98,7 @@ async function editCategory(req, res, next) {
 
   if (!result) {
     return res
-      .status(404)
+      .status(500)
       .json(
         errorResponse(
           res.statusCode,
@@ -148,7 +151,7 @@ async function getProductListByCategory(req, res, next) {
   const productList = await Product.find({ id_category: id });
   if (!productList) {
     return res
-      .status(404)
+      .status(400)
       .json(
         errorResponse(res.statusCode, 'This category is not having product yet')
       );
@@ -167,7 +170,7 @@ async function getCategoryName(req, res, next) {
       .json(errorResponse(res.statusCode, 'Invalid category id'));
   }
 
-  const result = await Category.findOne({ _id: id }, { _id: 0, __v: 0 });
+  const result = await Category.findOne({ _id: id }, { __v: 0 });
   if (!result) {
     return res
       .status(500)

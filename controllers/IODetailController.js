@@ -13,11 +13,11 @@ async function getIODetail(req, res, next) {
 
   if (!ioDetailList) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Cannot get io detail list'));
   } else if (ioDetailList.length === 0) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'IO detail list currently empty'));
   }
 

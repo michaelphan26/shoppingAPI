@@ -10,7 +10,7 @@ async function getRoleList(req, res, next) {
 
   if (!roleList) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Cannot get role list'));
   }
 
@@ -25,15 +25,10 @@ async function addRole(req, res, next) {
     return res.status(404).json(validateName.error.message);
   }
 
-  reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
   const nameCheck = await Role.findOne({ name: reg });
   if (nameCheck) {
     return res.status(400).json(errorResponse(res.statusCode, 'Role existed'));
-  }
-
-  const check = await Role.findOne({ name: req.body.name.trim() });
-  if (check) {
-    return res.status(404).json(errorResponse(res.statusCode, 'Role existed'));
   }
 
   const role = new Role({
@@ -61,8 +56,22 @@ async function editRole(req, res, next) {
   const validateResult = validateRole(req.body);
   if (validateResult.error) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
+  }
+
+  const reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const checkInDb = await Role.find({
+    name: reg,
+  });
+  if (checkInDb) {
+    for (index in checkInDb) {
+      if (checkInDb[index]._id !== id) {
+        return res
+          .status(400)
+          .json(errorResponse(res.statusCode, 'Role name existed'));
+      }
+    }
   }
 
   const result = await Role.findOneAndUpdate(

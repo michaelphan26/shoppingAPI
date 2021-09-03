@@ -16,29 +16,8 @@ async function changeStock(io, type, session) {
 
     const saveIOProduct = await ioProduct.save({ session });
     if (!saveIOProduct) throw new Error('Cannot save IO product');
-    for (const index in io.productList) {
-      const productInDB = await Product.findOne({
-        _id: io.productList[index].id_product,
-      });
 
-      if (!productInDB) throw new Error('Product not available');
-      if (type === 'increase') {
-        productInDB.stock =
-          parseInt(productInDB.stock) +
-          parseInt(io.productList[index].quantity);
-      } else if (type === 'decrease') {
-        if (productInDB.stock < io.productList[index].quantity) {
-          throw new Error('Not enough quantity');
-        }
-        productInDB.stock =
-          parseInt(productInDB.stock) -
-          parseInt(io.productList[index].quantity);
-      }
-
-      const result = await productInDB.save({ session });
-      if (!result) throw new Error('Cannot increase stock');
-    }
-
+    //Check trùng
     let tempList = [];
     for (const index in io.productList) {
       const tempIndex = tempList.findIndex(
@@ -57,7 +36,27 @@ async function changeStock(io, type, session) {
           parseInt(io.productList[index].quantity);
       }
     }
+
     for (const index in tempList) {
+      const productInDB = await Product.findOne({
+        _id: tempList[index].id_product,
+      });
+
+      if (!productInDB) throw new Error('Product not available');
+      if (type === 'increase') {
+        productInDB.stock =
+          parseInt(productInDB.stock) + parseInt(tempList[index].quantity);
+      } else if (type === 'decrease') {
+        if (productInDB.stock < tempList[index].quantity) {
+          throw new Error('Not enough quantity');
+        }
+        productInDB.stock =
+          parseInt(productInDB.stock) - parseInt(tempList[index].quantity);
+      }
+
+      const result = await productInDB.save({ session });
+      if (!result) throw new Error('Cannot increase stock');
+
       const ioProductDetail = await new IOProductDetail({
         id_IOProduct: ioProduct._id,
         id_product: tempList[index].id_product,
@@ -107,15 +106,15 @@ async function saveIO(io, res) {
 }
 
 async function getIOList(req, res, next) {
-  const ioList = await IOProduct.find({});
+  const ioList = await IOProduct.find({}).sort('desc');
 
   if (!ioList) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Cannot get io list'));
   } else if (ioList.length === 0) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'IO list currently empty'));
   }
 

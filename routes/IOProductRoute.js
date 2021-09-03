@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { adminAuth } = require('../middlewares/AuthMiddleware');
-const { getIOList, addIO } = require('../controllers/IOController');
+const { getIOList } = require('../controllers/IOController');
 
 router.get('/io-list', adminAuth, getIOList);
 

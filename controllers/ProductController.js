@@ -9,14 +9,14 @@ const { checkID } = require('./CommonController');
 
 //User
 async function getProductList(req, res, next) {
-  const productList = await Product.find({ status: true });
+  const productList = await Product.find({ status: true }).sort('desc');
   if (!productList) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Cannot get product list'));
   } else if (productList.length === 0) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Product list currently empty'));
   }
 
@@ -39,7 +39,7 @@ async function getProductDetail(req, res, next) {
   );
   if (!product) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Cannot get product detail'));
   }
 
@@ -48,14 +48,14 @@ async function getProductDetail(req, res, next) {
 
 //Admin
 async function getProductListAdmin(req, res, next) {
-  const productList = await Product.find({});
+  const productList = await Product.find({}).sort('desc');
   if (!productList) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Cannot get product list'));
   } else if (productList.length === 0) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Product list currently empty'));
   }
 
@@ -65,7 +65,7 @@ async function getProductListAdmin(req, res, next) {
 }
 
 async function getProductDetailAdmin(req, res, next) {
-  const id = checkID(req.params.id);
+  const id = await checkID(req.params.id);
   if (!id) {
     return res
       .status(404)
@@ -75,7 +75,7 @@ async function getProductDetailAdmin(req, res, next) {
   const product = await Product.findOne({ _id: id });
   if (!product) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Cannot get product detail'));
   }
 
@@ -85,7 +85,6 @@ async function getProductDetailAdmin(req, res, next) {
 async function addProduct(req, res, next) {
   const validateResult = validateProduct(req.body);
   if (validateResult.error) {
-    console.log(validateResult.error.message);
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
@@ -96,7 +95,6 @@ async function addProduct(req, res, next) {
     allowEmpty: false,
   });
   if (!checkImage) {
-    console.log('Lo');
     return res
       .status(400)
       .json(
@@ -107,12 +105,9 @@ async function addProduct(req, res, next) {
       );
   }
 
-  console.log('Hi');
-
-  reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
-  const nameCheck = await Product.findOne({ name: reg, status: false });
+  const reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const nameCheck = await Product.findOne({ name: reg });
   if (nameCheck) {
-    console.log(nameCheck);
     return res
       .status(400)
       .json(errorResponse(res.statusCode, 'Product name existed'));
@@ -130,13 +125,11 @@ async function addProduct(req, res, next) {
     status: req.body.status,
   });
 
-  console.log('R');
-
   const result = await dbProduct.save(dbProduct);
 
   if (!result) {
     return res
-      .status(400)
+      .status(500)
       .json(errorResponse(res.statusCode, 'Failed to add product'));
   }
 
@@ -146,7 +139,7 @@ async function addProduct(req, res, next) {
 }
 
 async function deleteProduct(req, res, next) {
-  const id = checkID(req.params.id);
+  const id = await checkID(req.params.id);
   if (!id) {
     return res
       .status(404)
@@ -172,7 +165,7 @@ async function deleteProduct(req, res, next) {
   );
   if (!result) {
     return res
-      .status(400)
+      .status(500)
       .json(errorResponse(res.statusCode, 'Failed to delete product'));
   }
 
@@ -194,6 +187,18 @@ async function editProduct(req, res, next) {
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
+  }
+
+  const reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const nameCheck = await Product.find({ name: reg });
+  if (nameCheck) {
+    for (index in nameCheck) {
+      if (nameCheck[index]._id !== id) {
+        return res
+          .status(400)
+          .json(errorResponse(res.statusCode, 'Product name existed'));
+      }
+    }
   }
 
   const checkImage = isBase64(req.body.image.trim(), {
@@ -230,7 +235,7 @@ async function editProduct(req, res, next) {
 
   if (!result) {
     return res
-      .status(400)
+      .status(500)
       .json(errorResponse(res.statusCode, 'Failed to edit product'));
   }
 

@@ -10,11 +10,11 @@ async function getCompanyList(req, res, next) {
 
   if (!companyList) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Cannot get company list'));
   } else if (companyList.length === 0) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Company list is empty'));
   }
 
@@ -35,7 +35,7 @@ async function getCompanyDetail(req, res, next) {
 
   if (!companyDetail) {
     return res
-      .status(404)
+      .status(400)
       .json(errorResponse(res.statusCode, 'Cannot get company detail'));
   }
 
@@ -52,7 +52,7 @@ async function addCompany(req, res, next) {
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
-  reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
   const nameCheck = await Company.findOne({ name: reg });
   if (nameCheck) {
     return res
@@ -92,12 +92,18 @@ async function editCompany(req, res, next) {
       .json(errorResponse(res.statusCode, validateResult.error.message));
   }
 
-  reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
-  const nameCheck = await Company.findOne({ name: reg });
-  if (nameCheck) {
-    return res
-      .status(400)
-      .json(errorResponse(res.statusCode, 'Company name existed'));
+  const reg = new RegExp(`^${req.body.name.trim()}$`, 'i');
+  const checkInDb = await Company.find({
+    name: reg,
+  });
+  if (checkInDb) {
+    for (index in checkInDb) {
+      if (checkInDb[index]._id !== id) {
+        return res
+          .status(400)
+          .json(errorResponse(res.statusCode, 'Company name existed'));
+      }
+    }
   }
 
   const result = await Company.findOneAndUpdate(

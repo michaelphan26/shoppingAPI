@@ -31,7 +31,7 @@ const productSchema = mongoose.Schema({
     required: true,
     trim: true,
     minLength: 3,
-    maxLength: 200,
+    maxLength: 500,
   },
   stock: {
     type: Number,
