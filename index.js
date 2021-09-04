@@ -13,7 +13,6 @@ const productRoutes = require('./routes/ProductRoute');
 const receiptRoutes = require('./routes/ReceiptRoute');
 const userRoutes = require('./routes/UserRoute');
 const adminRoutes = require('./routes/AdminRoute');
-// const cartRoutes = require('./routes/CartRoute');
 const roleRoutes = require('./routes/RoleRoute');
 const categoryRoutes = require('./routes/CategoryRoute');
 const receiptTypeRoutes = require('./routes/ReceiptTypeRoute');
@@ -44,9 +43,6 @@ app.use(express.json({ limit: '50mb' }));
 //Error handler
 app.use(errorHandler);
 
-// //Compression
-// app.use(compression);
-
 //Routes
 //Auth
 const api = process.env.API_URL;
@@ -55,7 +51,6 @@ app.use(`${api}/product`, productRoutes);
 app.use(`${api}/receipt`, receiptRoutes);
 app.use(`${api}/user`, userRoutes);
 app.use(`${api}/admin`, adminRoutes);
-// app.use(`${api}/cart`, cartRoutes);
 app.use(`${api}/role`, roleRoutes);
 app.use(`${api}/category`, categoryRoutes);
 app.use(`${api}/receipt-type`, receiptTypeRoutes);
@@ -63,10 +58,6 @@ app.use(`${api}/io-type`, ioTypeRoutes);
 app.use(`${api}/company`, companyRoutes);
 app.use(`${api}/io-product`, ioProductRoutes);
 app.use(`${api}/io-detail`, ioProductDetailRoutes);
-
-// app.get('/', (res, req) => {
-//   return res.status(200).send('OK');
-// });
 
 //Connect DB
 console.log(process.env.DB_URL);
