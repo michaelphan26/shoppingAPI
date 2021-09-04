@@ -63,7 +63,7 @@ async function authRegister(req, res, next) {
   const salt = await bcrypt.genSalt(10);
   req.body.password = await bcrypt.hash(req.body.password.trim(), salt);
 
-  const role = await Role.findOne({ name: /^user$/i });
+  const role = await Role.findOne({ name: /^khách hàng$/i });
 
   const date = new Date();
   const dbUserInfo = new UserInfo({
