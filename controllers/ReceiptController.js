@@ -86,13 +86,6 @@ async function checkDuplicate(productList) {
 
 //User
 async function getReceiptList(req, res, next) {
-  const id = await checkID(req.params.id);
-  if (!id) {
-    return res
-      .status(404)
-      .json(errorResponse(res.statusCode, 'Invalid receipt id'));
-  }
-
   let id_receiptType;
   const check1 = await ReceiptType.findOne({ name: /^checkout$/i });
   if (!check1) {
