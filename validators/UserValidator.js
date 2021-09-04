@@ -39,7 +39,7 @@ function validateAddUser(addDetail) {
       .min(10)
       .max(11)
       .trim()
-      .pattern(/((02|09|03|07|08|05)+([0-9]{9})\b)/)
+      .pattern(/((02|09|03|07|08|05)+([0-9]{8,9})\b)/)
       .required(),
     address: joi.string().min(5).max(100).trim().required(),
     id_role: joi.objectId().required(),

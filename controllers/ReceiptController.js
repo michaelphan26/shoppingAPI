@@ -62,7 +62,9 @@ async function checkDuplicate(productList) {
   let temp = [];
   for (const index in productList) {
     const product = productList[index];
-    const tempProduct = temp.find((item) => item.id_product);
+    const tempProduct = temp.find(
+      (item) => item.id_product === product.id_product
+    );
 
     if (!tempProduct) temp.push(product);
     else {
@@ -84,7 +86,7 @@ async function checkDuplicate(productList) {
 
 //User
 async function getReceiptList(req, res, next) {
-  const id = await checkID(id_receiptType);
+  const id = await checkID(req.params.id);
   if (!id) {
     return res
       .status(404)
@@ -205,10 +207,8 @@ async function saveReceipt(receipt, req, res) {
       });
       add = true;
     } else {
+      dbReceipt = cartCheck;
       console.log('Modify');
-      const detailList = await ReceiptDetail.find({
-        id_receipt: cartCheck._id,
-      });
       // console.log('Check detail list');
       // if (detailList) {
       //   const increase = await increaseStock(detailList);
@@ -219,12 +219,8 @@ async function saveReceipt(receipt, req, res) {
       const check = await checkStock(receipt.productList);
       if (!check) throw new Error('Product not available or not enough stock');
 
-      if (!detailList || detailList.length === 0) {
-        throw new Error('Receipt detail is empty');
-      }
-
       const deleteOldDetail = await ReceiptDetail.deleteMany({
-        id_receipt: cartCheck._id,
+        id_receipt: dbReceipt._id,
       }).session(session);
       if (!deleteOldDetail) {
         throw new Error('Cannot edit receipt detail');
@@ -238,7 +234,7 @@ async function saveReceipt(receipt, req, res) {
     console.log('detail');
     for (const index in receipt.productList) {
       const receiptDetail = new ReceiptDetail({
-        id_receipt: cartCheck._id,
+        id_receipt: dbReceipt._id,
         id_product: receipt.productList[index].id_product,
         price: receipt.productList[index].price,
         discount: receipt.productList[index].discount,
@@ -249,6 +245,7 @@ async function saveReceipt(receipt, req, res) {
         throw new Error('Cannot save receipt detail');
       }
     }
+    console.log('save');
 
     let saveReceipt;
     if (add) {
@@ -276,6 +273,7 @@ async function saveReceipt(receipt, req, res) {
     await session.endSession();
     return res.status(200).json(successResponse(res.statusCode, 'OK'));
   } catch (err) {
+    console.log(err);
     await session.abortTransaction();
     await session.endSession();
     return res.status(500).json(errorResponse(res.statusCode, err.message));
@@ -449,6 +447,12 @@ async function checkoutReceipt(req, res, next) {
 
   const receipt = await Receipt.findOne({ _id: id });
 
+  if (receipt.total <= 1000) {
+    return res
+      .status(500)
+      .json(errorResponse(res.statusCode, 'Receipt total not valid'));
+  }
+
   let id_receiptType;
   const check1 = await ReceiptType.findOne({ name: /^checkout$/i });
   if (!check1) {
@@ -532,6 +536,7 @@ async function getCartOnLogin(req, res, next) {
         receipt.name.toLowerCase() === 'giỏ hàng')
     ) {
       cart = receiptList[index];
+      break;
     }
   }
   if (!cart) {

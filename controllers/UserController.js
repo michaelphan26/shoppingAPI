@@ -206,6 +206,7 @@ async function editUserDetailAdmin(req, res, next) {
 async function adminAddUser(req, res, next) {
   const validateResult = validateAddUser(req.body);
   if (validateResult.error) {
+    console.log(validateResult.error.message);
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));

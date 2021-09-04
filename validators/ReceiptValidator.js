@@ -13,8 +13,8 @@ function validateReceipt(receipt) {
         })
       )
       .required()
-      .min(1),
-    total: joi.number().min(1000).max(1000000000).required(),
+      .min(0),
+    total: joi.number().min(0).max(1000000000).required(),
   });
 
   return schema.validate(receipt);

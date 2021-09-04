@@ -73,7 +73,7 @@ async function editReceiptType(req, res, next) {
   });
   if (checkInDb) {
     for (index in checkInDb) {
-      if (checkInDb[index]._id !== id) {
+      if (String(checkInDb[index]._id) !== String(id)) {
         return res
           .status(400)
           .json(errorResponse(res.statusCode, 'receipt type name existed'));

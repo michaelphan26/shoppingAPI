@@ -78,7 +78,7 @@ async function editCategory(req, res, next) {
   });
   if (checkInDb) {
     for (index in checkInDb) {
-      if (checkInDb[index]._id !== id) {
+      if (String(checkInDb[index]._id) !== String(id)) {
         return res
           .status(400)
           .json(errorResponse(res.statusCode, 'Category name existed'));
@@ -122,7 +122,7 @@ async function deleteCategory(req, res, next) {
   if (dbCheck) {
     return res
       .status(400)
-      .errorResponse(res.statusCode, 'Cannot delete this category');
+      .errorResponse((res.statusCode, 'Cannot delete this category'));
   }
 
   const result = await Category.findOneAndDelete({ _id: id });

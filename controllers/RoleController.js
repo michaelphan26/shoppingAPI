@@ -66,7 +66,7 @@ async function editRole(req, res, next) {
   });
   if (checkInDb) {
     for (index in checkInDb) {
-      if (checkInDb[index]._id !== id) {
+      if (String(checkInDb[index]._id) !== String(id)) {
         return res
           .status(400)
           .json(errorResponse(res.statusCode, 'Role name existed'));
@@ -91,6 +91,7 @@ async function editRole(req, res, next) {
         errorResponse(res.statusCode, 'Cannot edit role or role not exist')
       );
   }
+  console.log(result);
 
   return res.status(200).json(successResponse(res.statusCode, 'Ok', result));
 }

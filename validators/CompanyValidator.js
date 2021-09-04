@@ -8,7 +8,7 @@ function validateCompany(company) {
       .trim()
       .min(10)
       .max(11)
-      .pattern(/((02|09|03|07|08|05)+([0-9]{9})\b)/)
+      .pattern(/((02|09|03|07|08|05)+([0-9]{8,9})\b)/)
       .required(),
     address: joi.string().trim().min(5).max(100).required(),
     tax_number: joi.string().trim().min(5).max(50).required(),

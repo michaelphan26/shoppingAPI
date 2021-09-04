@@ -85,6 +85,7 @@ async function getProductDetailAdmin(req, res, next) {
 async function addProduct(req, res, next) {
   const validateResult = validateProduct(req.body);
   if (validateResult.error) {
+    console.log(validateResult.error.message);
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
@@ -184,6 +185,7 @@ async function editProduct(req, res, next) {
 
   const validateResult = validateProduct(req.body);
   if (validateResult.error) {
+    console.log(validateResult.error.message);
     return res
       .status(400)
       .json(errorResponse(res.statusCode, validateResult.error.message));
@@ -193,7 +195,7 @@ async function editProduct(req, res, next) {
   const nameCheck = await Product.find({ name: reg });
   if (nameCheck) {
     for (index in nameCheck) {
-      if (nameCheck[index]._id !== id) {
+      if (String(nameCheck[index]._id) !== String(id)) {
         return res
           .status(400)
           .json(errorResponse(res.statusCode, 'Product name existed'));
