@@ -12,7 +12,7 @@ const { successResponse, errorResponse } = require('../models/ResponseAPI');
 
 async function checkID(id) {
   try {
-    id = new mongoose.Types.ObjectId(id);
+    id = new mongoose.Types.ObjectId(id.trim());
     return id;
   } catch (err) {
     return null;

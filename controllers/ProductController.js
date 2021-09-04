@@ -6,6 +6,7 @@ const { successResponse, errorResponse } = require('../models/ResponseAPI');
 const isBase64 = require('is-base64');
 const { ReceiptDetail } = require('../database/ReceiptDetailModel');
 const { checkID } = require('./CommonController');
+const { Category } = require('../database/CategoryModel');
 
 //User
 async function getProductList(req, res, next) {
@@ -114,6 +115,19 @@ async function addProduct(req, res, next) {
       .json(errorResponse(res.statusCode, 'Product name existed'));
   }
 
+  const id_category_check = await checkID(req.body.id_category);
+  if (!id_category_check) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Invalid category id'));
+  }
+  const categoryCheck = await Category.findOne({ _id: id_category_check });
+  if (!categoryCheck) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Category not existed'));
+  }
+
   dbProduct = new Product({
     name: req.body.name.trim(),
     brand: req.body.brand.trim(),
@@ -201,6 +215,19 @@ async function editProduct(req, res, next) {
           .json(errorResponse(res.statusCode, 'Product name existed'));
       }
     }
+  }
+
+  const id_category_check = await checkID(req.body.id_category);
+  if (!id_category_check) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Invalid category id'));
+  }
+  const categoryCheck = await Category.findOne({ _id: id_category_check });
+  if (!categoryCheck) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, 'Category not existed'));
   }
 
   const checkImage = isBase64(req.body.image.trim(), {

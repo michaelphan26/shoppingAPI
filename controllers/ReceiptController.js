@@ -114,9 +114,10 @@ async function getReceiptList(req, res, next) {
       .json(errorResponse(res.statusCode, 'Invalid user id'));
   }
 
-  const receiptList = await Receipt.find({ id_user: user_id }, { _v: 0 }).sort(
-    'desc'
-  );
+  const receiptList = await Receipt.find(
+    { id_user: user_id, id_receiptType: id_receiptType },
+    { _v: 0 }
+  ).sort('desc');
   if (!receiptList) {
     return res
       .status(400)

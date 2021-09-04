@@ -148,7 +148,7 @@ async function getProductListByCategory(req, res, next) {
       .json(errorResponse(res.statusCode, 'Invalid category id'));
   }
 
-  const productList = await Product.find({ id_category: id });
+  const productList = await Product.find({ id_category: id, status: true });
   if (!productList) {
     return res
       .status(400)
