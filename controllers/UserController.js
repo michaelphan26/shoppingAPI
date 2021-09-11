@@ -129,7 +129,7 @@ async function getUser(req, res, next) {
 }
 
 async function getAccountList(req, res, next) {
-  const userList = await User.find({}, { password: 0 }).sort('desc');
+  const userList = await User.find({}, { password: 0 }).sort({ _id: -1 });
   if (!userList) {
     return res
       .status(404)

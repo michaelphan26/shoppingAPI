@@ -20,7 +20,16 @@ function validateReceipt(receipt) {
   return schema.validate(receipt);
 }
 
-module.exports = { validateReceipt };
+function validateReceiptDateRange(detail) {
+  const schema = joi.object({
+    dateFrom: joi.date().required(),
+    dateTo: joi.date().required(),
+  });
+
+  return schema.validate(detail);
+}
+
+module.exports = { validateReceipt, validateReceiptDateRange };
 
 //total: joi.number().min(1000).max(1000000000).required(),
 //email: joi.string().min(5).max(256).trim().email().required(),

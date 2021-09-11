@@ -10,7 +10,7 @@ const { Category } = require('../database/CategoryModel');
 
 //User
 async function getProductList(req, res, next) {
-  const productList = await Product.find({ status: true }).sort('desc');
+  const productList = await Product.find({ status: true }).sort({ _id: -1 });
   if (!productList) {
     return res
       .status(400)
@@ -49,7 +49,7 @@ async function getProductDetail(req, res, next) {
 
 //Admin
 async function getProductListAdmin(req, res, next) {
-  const productList = await Product.find({}).sort('desc');
+  const productList = await Product.find({}).sort({ _id: -1 });
   if (!productList) {
     return res
       .status(400)

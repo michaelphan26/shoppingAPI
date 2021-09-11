@@ -95,6 +95,11 @@ async function getSummary(req, res) {
         title: 'Đối tác',
         count: companyNum,
       },
+      {
+        id: 'adminStatistic',
+        title: 'Thống kê\\ndoanh thu',
+        count: null,
+      },
     ];
 
     return res

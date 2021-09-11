@@ -3,8 +3,12 @@ const { IOProduct } = require('../database/IOProductModel');
 const { IOProductDetail } = require('../database/IOProductDetailModel');
 const { IOType } = require('../database/IOTypeModel');
 const { errorResponse, successResponse } = require('../models/ResponseAPI');
-const { validateIOProduct } = require('../validators/IOProductValidator');
+const {
+  validateIOProduct,
+  validateStatisticDateRange,
+} = require('../validators/IOProductValidator');
 const { Product } = require('../database/ProductModel');
+const { checkID } = require('./CommonController');
 
 async function changeStock(io, type, session) {
   try {
@@ -106,7 +110,7 @@ async function saveIO(io, res) {
 }
 
 async function getIOList(req, res, next) {
-  const ioList = await IOProduct.find({}).sort('desc');
+  const ioList = await IOProduct.find({}).sort({ date: -1 });
 
   if (!ioList) {
     return res

@@ -3,7 +3,10 @@ const { Product } = require('../database/ProductModel');
 const { ReceiptDetail } = require('../database/ReceiptDetailModel');
 const { ReceiptType } = require('../database/ReceiptTypeModel');
 const mongoose = require('mongoose');
-const { validateReceipt } = require('../validators/ReceiptValidator');
+const {
+  validateReceipt,
+  validateReceiptDateRange,
+} = require('../validators/ReceiptValidator');
 const { successResponse, errorResponse } = require('../models/ResponseAPI');
 const { checkID } = require('./CommonController');
 const _ = require('lodash');
@@ -110,7 +113,7 @@ async function getReceiptList(req, res, next) {
   const receiptList = await Receipt.find(
     { id_user: user_id, id_receiptType: id_receiptType },
     { _v: 0 }
-  ).sort('desc');
+  ).sort({ date: -1 });
   if (!receiptList) {
     return res
       .status(400)
@@ -309,7 +312,7 @@ async function addReceipt(req, res, next) {
 
 //Admin
 async function getReceiptListAdmin(req, res, next) {
-  const receiptList = await Receipt.find({}).sort('desc');
+  const receiptList = await Receipt.find({}).sort({ date: -1 });
   if (!receiptList) {
     return res
       .status(400)
@@ -555,6 +558,50 @@ async function getCartOnLogin(req, res, next) {
   );
 }
 
+async function getReceiptFromDate(req, res, next) {
+  const validateResult = validateReceiptDateRange(req.body);
+  if (validateResult.error) {
+    return res
+      .status(400)
+      .json(errorResponse(res.statusCode, validateResult.error.message));
+  }
+
+  let id_receiptType;
+  const check1 = await ReceiptType.findOne({ name: /^checkout$/i });
+  if (!check1) {
+    const check2 = await ReceiptType.findOne({ name: /^xac nhan$/i });
+    if (!check2) {
+      const check3 = await ReceiptType.findOne({ name: /^xác nhận$/i });
+      if (!check3) {
+        return res
+          .status(400)
+          .json(errorResponse(res.statusCode, 'Cannot get receipt type'));
+      } else id_receiptType = check3._id;
+    } else id_receiptType = check2._id;
+  } else id_receiptType = check1._id;
+
+  const dateFrom = new Date(req.body.dateFrom.trim());
+  let dateTo = new Date(req.body.dateTo.trim());
+  dateTo.setDate(dateTo.getDate() + 1);
+  const dbData = await Receipt.find({
+    date: { $gte: dateFrom, $lte: dateTo },
+    id_receiptType: id_receiptType,
+  });
+  if (!dbData) {
+    return res
+      .statusCode(400)
+      .json(errorResponse(res.statusCode, 'Cannot get data'));
+  }
+
+  for (const index in dbData) {
+    const receiptObj = dbData[index].toObject();
+    receiptObj.date = new Date(receiptObj.date).toLocaleString('en-GB');
+    dbData[index] = receiptObj;
+  }
+
+  return res.status(200).json(successResponse(res.statusCode, 'Ok', dbData));
+}
+
 module.exports = {
   getReceiptList,
   getReceiptDetail,
@@ -564,4 +611,5 @@ module.exports = {
   changeReceiptType,
   checkoutReceipt,
   getCartOnLogin,
+  getReceiptFromDate,
 };

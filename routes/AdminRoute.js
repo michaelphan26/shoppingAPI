@@ -12,7 +12,6 @@ const {
 } = require('../controllers/ProductController');
 const {
   getAccountList,
-  getUserDetail,
   editUserDetailAdmin,
   adminAddUser,
   getUser,
@@ -20,9 +19,9 @@ const {
 } = require('../controllers/UserController');
 const {
   getReceiptListAdmin,
-  getReceiptDetail,
   getReceiptDetailAdmin,
   changeReceiptType,
+  getReceiptFromDate,
 } = require('../controllers/ReceiptController');
 const { getSummary } = require('../controllers/CommonController');
 const {
@@ -117,5 +116,7 @@ router.put('/edit-role/:id', adminAuth, editRole);
 router.get('/summary', adminAuth, getSummary);
 
 router.get('/account/:id', adminAuth, getUser);
+
+router.post('/get-receipt-statistic', adminAuth, getReceiptFromDate);
 
 module.exports = router;
