@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node --max-http-header-size=1024000 index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "worker": "node index.js",
-    "web": "node index.js"
+    "worker": "node --max-http-header-size=1024000 index.js",
+    "web": "node --max-http-header-size=1024000 index.js"
   },
   "engines": {
     "node": "14.17.3"
@@ -19,6 +19,7 @@
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
     "config": "^3.3.6",
+    "cors": "^2.8.5",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "express-async-errors": "^3.1.1",

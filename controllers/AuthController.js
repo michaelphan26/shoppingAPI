@@ -39,7 +39,7 @@ async function sendToken(res, msg, user, roleName) {
   };
   const token = await user.generateToken(tokenDetail);
   return res
-    .header('x-auth-token', token)
+    .setHeader('x-auth-token', token)
     .status(200)
     .json(successResponse(res.statusCode, msg, tokenDetail));
 }

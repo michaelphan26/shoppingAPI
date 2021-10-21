@@ -14,6 +14,8 @@
 //     },
 //   ];
 
+const { indexOf } = require('lodash');
+
 //   const temp = [];
 //   for (const index in list) {
 //     const itemOfList = list[index];
@@ -44,16 +46,29 @@
 //   }
 // }
 
-function test() {
-  return false;
-}
+// function test() {
+//   return false;
+// }
+
+// function run() {
+//   const a = test();
+//   if (a) {
+//     console.log('True');
+//   }
+//   console.log('False');
+// }
+
+// run();
 
 function run() {
-  const a = test();
-  if (a) {
-    console.log('True');
+  const a = [10, 20, 20, 10, 10, 30, 50, 10, 20];
+  let b = [];
+  for (const index in a) {
+    if (a.filter((number) => number == a[index]).length > 1) {
+      b.push(a[index]);
+    }
   }
-  console.log('False');
+  console.log(Math.floor(b.length / 2));
 }
 
 run();

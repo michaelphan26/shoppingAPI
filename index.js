@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const helmet = require('helmet');
 const morgan = require('morgan');
+const cors = require('cors');
 require('dotenv/config');
 const config = require('config');
 const mongoose = require('mongoose');
@@ -42,6 +43,13 @@ app.use(express.json({ limit: '50mb' }));
 
 //Error handler
 app.use(errorHandler);
+
+//Cors
+const corsOptions = {
+  exposedHeaders: ['x-auth-token'],
+  origin: true,
+};
+app.use(cors(corsOptions));
 
 //Routes
 //Auth
